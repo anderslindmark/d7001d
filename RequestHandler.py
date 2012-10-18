@@ -20,13 +20,13 @@ class RequestHandler(threading.Thread):
         print reply
         
         # Write to S3
+        url = S3.uploadFile(request.id, reply)
         
-        #url = sql.uploadFile(request.id, reply)
+        print url
         
-        #m = Message()
-        #m.set_body(url)
-        ## status =
-        #outQueue.write(m)
+        m = Message()
+        m.set_body(url)
+        outQueue.write(m)
 
     def run(self):
         while True:
