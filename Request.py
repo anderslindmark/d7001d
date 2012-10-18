@@ -1,8 +1,9 @@
 
 import xml.etree.ElementTree as ET
+
 import rawdata
 import sql
-import RequestError
+import error
 
 class Request:
     
@@ -39,20 +40,20 @@ class Request:
             elif self.type == 'CellStatNet':
                 xmlString = self.cellStatNetReply()
             else:
-                raise XMLError(self.id)
+                raise error.XMLError(self.id)
             
             return xmlString
         
-        except StartTimeError:
+        except error.StartTimeError:
             return self.fakeStartTimeError()
-        except StopTimeError:
+        except error.StopTimeError:
             return self.fakeStopTimeError()
-        except CellIDError:
+        except error.CellIDError:
             return self.fakeCellIDError()
-        except XMLError:
+        except error.XMLError:
             return self.fakeXMLError()
-        except Exception:
-            return self.fakeXMLError()
+#except Exception:
+                #            return self.fakeXMLError()
 
     def fakeXMLError(self):
         return """
@@ -100,7 +101,7 @@ class Request:
 
     def listCellsReply(self):
         
-        cells = listAllCells() # all cells as set
+        cells = sql.Packet.listAllCells() # all cells as set
         cellList = list(cells)
         cellList.sort()
         
@@ -109,11 +110,12 @@ class Request:
         eType.text = self.type
         
         for cellID in cellList:
+            print cellID
             eCell = ET.SubElement(root, 'Cell')
             eId = ET.SubElement(eCell, 'CellID')
             eId.text = str(cellID)
             # add neighbors
-        
+                
         return ET.tostring(root)
 
 
@@ -134,7 +136,7 @@ class Request:
         eStop = ET.SubElement(eCell, 'TimeStop')
         eStop.text = self.stopTime
         
-        packets = Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
+        packets = sql.Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
         
         dirMap = { 0:'A', 1:'B' }
         carMap = { 1:'A', 2:'B', 3:'C', 4:'D', 5:'E', 6:'F' }
@@ -153,8 +155,8 @@ class Request:
                 eAvg = ET.SubElement(eCar, 'AverageSpeed')
                 
                 if (len(relevantPackets) > 1):
-                    path, filelist = writeFiles(relevantPackets)
-                    min, max, avg = getAvgSpeed(path, filelist)
+                    path, filelist = sql.Packet.writeFiles(relevantPackets)
+                    min, max, avg = rawdata.getAvgSpeed(path, filelist)
                     eMin.text = str(min)
                     eMax.text = str(max)
                     eAvg.text = str(avg)
@@ -256,7 +258,7 @@ class Request:
         eStop = ET.SubElement(eCell, 'TimeStop')
         eStop.text = self.stopTime
         
-        packets = Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
+        packets = sql.Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
         
         firstCarPacket = packets[0]
         lastCarPacket = packets[len(packets) - 1]

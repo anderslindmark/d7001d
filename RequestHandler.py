@@ -1,7 +1,7 @@
 import time
 import threading
-import Request
 import S3
+import Request
 from boto.sqs.message import Message
 from boto.sqs.connection import SQSConnection
 
@@ -14,16 +14,19 @@ class RequestHandler(threading.Thread):
     
     def handleMessage(self, message):
         body = message.get_body()
-        request = Request(body)
+        request = Request.Request(body)
         reply = request.process()
         
-        # Write to S3
-        url = uploadFile(request.id, reply)
+        print reply
         
-        m = Message()
-        m.set_body(url)
-        # status =
-        outQueue.write(m)
+        # Write to S3
+        
+        #url = sql.uploadFile(request.id, reply)
+        
+        #m = Message()
+        #m.set_body(url)
+        ## status =
+        #outQueue.write(m)
 
     def run(self):
         while True:
@@ -43,6 +46,11 @@ if __name__ == "__main__":
 
     requestHandler = RequestHandler(inQueue, outQueue)
     requestHandler.start()
+
+    m = Message()
+    m.set_body(open('test3.xml', 'r').read())
+    print m.get_body()
+    status = inQueue.write(m)
 
 #    for i in range(1, 5):
 #        m = Message()
