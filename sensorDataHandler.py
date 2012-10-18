@@ -71,9 +71,8 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
 
 
 if __name__ == "__main__":
-    HOST = socket.gethostbyname(socket.gethostname())
     PORT = 9999
-    server = ThreadedTCPServer((HOST, PORT), SensorDataHandler)
+    server = ThreadedTCPServer(('', PORT), SensorDataHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
