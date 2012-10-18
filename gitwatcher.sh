@@ -30,7 +30,7 @@ if [[ "$LOG" != "" ]]; then
 	fi
 	
 	echo "Starting service"
-	$WORKDIR/run
+	$WORKDIR/run &
 else
 	echo "No new revisions"
 fi
