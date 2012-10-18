@@ -1,4 +1,4 @@
 #!/bin/sh
 cd /home/ubuntu/project
-python sensorDataHandler.py
+screen python sensorDataHandler.py
 
