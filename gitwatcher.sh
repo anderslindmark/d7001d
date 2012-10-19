@@ -11,15 +11,12 @@ cd $WORKDIR
 git fetch origin
 
 # Get list of changes
-LOG=`git log -- head..origin/master --oneline`
+#LOG=`git log -- head..origin/master --oneline`
+LOG=$(git log -- head..origin/master --oneline)
 
 # Check if anything has been done
 if [[ "$LOG" != "" ]]; then
 	echo "There were new revisions."
-
-	echo "Merging changes"
-	git merge origin master
-	
 	echo -n "Stopping service... "
 	PID=`ps a | grep sensorDataHandler.py | grep -v grep | awk '{print $1}'`
 	if [[ "$PID" != "" ]]; then

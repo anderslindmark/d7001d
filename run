@@ -1,4 +1,5 @@
 #!/bin/sh
 cd /home/ubuntu/project
+git pull
 screen -d -m python sensorDataHandler.py
 
