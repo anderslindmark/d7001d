@@ -18,7 +18,7 @@ AUTOSCALING_GROUP = 'nicnys-8-sensorServer-as'
 LAUNCH_CONFIGURATION = 'nicnys-8-sensorServer-lc'
 LOAD_BALANCER = 'nicnys-8-sensorServer-lb'
 REGION = 'eu-west-1'
-AVAILABILITY_ZONE = 'eu-west-1b'
+AVAILABILITY_ZONES = ['eu-west-1b']
 
 INSTANCE_PORT = 9999
 LOAD_BALANCER_PORT = 9999
@@ -43,7 +43,7 @@ hc = HealthCheck(
 ports = [(LOAD_BALANCER_PORT, INSTANCE_PORT, 'tcp')]
 
 # The crap below might want a *list* of availability zones?
-lb = lbConnection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONE, ports)
+lb = lbConnection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONES, ports)
 lb.configure_health_check(hc)
 
 dnsName = lb.dns_name
@@ -54,7 +54,7 @@ print("URL: " + dnsName)
 #= Autoscaling =#
 #===============#
 
-asConnection = boto.ec2.autoscale.connect_to_region(REGION)
+as_connection = boto.ec2.autoscale.connect_to_region(REGION)
 
 # Create a launch configuration; the set of information needed
 # by the autoscale group to launch new instances
@@ -67,13 +67,17 @@ lc = LaunchConfiguration(
 ag = AutoScalingGroup(
     group_name = AUTOSCALING_GROUP,
     load_balancers = [LOAD_BALANCER],
-    availability_zones = [AVAILABILITY_ZONE],
+    availability_zones = AVAILABILITY_ZONES,
     launch_config = lc,
     min_size = 1, max_size = 2,
-    connection = asConnection)
+    connection = as_connection)
 
-asConnection.create_auto_scaling_group(ag)
-
+# Create a new autoscaling group if it doesn't already exist
+my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
+if (my_groups == []):
+    as_connection.create_auto_scaling_group(ag)
+    my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
+ag = my_groups[0]
 
 #====================#
 #= Scaling policies =#
@@ -90,16 +94,16 @@ scale_down_policy = ScalingPolicy(
     as_name = AUTOSCALING_GROUP, scaling_adjustment = -1, cooldown = 180)
 
 # Submit policies to AWS
-asConnection.create_scaling_policy(scale_up_policy)
-asConnection.create_scaling_policy(scale_down_policy)
+as_connection.create_scaling_policy(scale_up_policy)
+as_connection.create_scaling_policy(scale_down_policy)
 
 # The polices now have extra properties that aren't
 # accessible locally. Refresh the policies by requesting
 # them back again.
-scale_up_policy = asConnection.get_all_policies(
+scale_up_policy = as_connection.get_all_policies(
     as_group = AUTOSCALING_GROUP, policy_names = ['scale_up'])[0]
 
-scale_down_policy = asConnection.get_all_policies(
+scale_down_policy = as_connection.get_all_policies(
     as_group = AUTOSCALING_GROUP, policy_names = ['scale_down'])[0]
 
 
@@ -137,17 +141,9 @@ scale_down_alarm = MetricAlarm(
 
 cloudwatch.create_alarm(scale_down_alarm)
 
-
 """
-#=========================================#
-#= Just some stuff I want to remember... =#
-#=========================================#
-
-
-ag = asConnection.get_all_groups(names=['nicnys-8-sensorServer-as'])[0]
-[i.instance_id for i in ag.instances]
-
-ag.shutdown_instances()
-ag.delete()
-
+def stop_autoscaling():
+    ag.shutdown_instances()
+    ag.delete()
 """
+    
