@@ -42,8 +42,8 @@ class RequestHandler(threading.Thread):
 if __name__ == "__main__":
 
     conn = SQSConnection(aws_common.AWS_ACCESS_KEY, aws_common.AWS_SECRET_KEY)
-    inQueue = conn.create_queue(aws_common.SQS_FRONTEND_IN)
-    outQueue = conn.create_queue(aws_common.SQS_FRONTEND_OUT)
+    inQueue = conn.create_queue("frontendInQueue")
+    outQueue = conn.create_queue("frontendOutQueue")
 
     requestHandler = RequestHandler(inQueue, outQueue)
     requestHandler.start()
