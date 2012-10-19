@@ -26,7 +26,7 @@ if [[ "$LOG" != "" ]]; then
 	fi
 	
 	echo "Starting service"
-	$WORKDIR/run &
+	$WORKDIR/runSensorDataHandler &
 else
 	echo "No new revisions"
 fi
