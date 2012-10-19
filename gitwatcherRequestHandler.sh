@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Put:
-#   */5 * * * * /path/to/gitwatcher
+#   */5 * * * * /path/to/gitwatcherRequestHandler.sh
 # in crontab to check every five minutes
 
 WORKDIR=/home/ubuntu/project
