@@ -18,7 +18,6 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
     """
     Request handler that receives data from the sensor network and
     stores it in our database.
-    
     """
 
     def handle(self):
