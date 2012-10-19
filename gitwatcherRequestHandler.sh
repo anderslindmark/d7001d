@@ -17,7 +17,7 @@ LOG=$(git log HEAD..origin/master)
 if [[ "$LOG" != "" ]]; then
 	echo "There were new revisions."
 	echo -n "Stopping service... "
-	PID=`ps a | grep sensorDataHandler.py | grep -v grep | awk '{print $1}'`
+	PID=`ps a | grep RequestHandler.py | grep -v grep | awk '{print $1}'`
 	if [[ "$PID" != "" ]]; then
 		kill $PID
 		echo "Done"
