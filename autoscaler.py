@@ -21,7 +21,7 @@ REGION = 'eu-west-1'
 AVAILABILITY_ZONES = ['eu-west-1b']
 
 INSTANCE_PORT = 9999
-LOAD_BALANCER_PORT = 9999
+LOAD_BALANCER_PORT = 12345
 
 #=====================#
 #= Load balancinging =#

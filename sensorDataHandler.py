@@ -2,6 +2,7 @@ import socket
 import threading
 import SocketServer
 import sql
+import logging
 from struct import unpack
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -41,6 +42,7 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             size = int(self.bytes_to_int(size))
         except:
             print "Faulty data format"
+            logging.exception("Faulty data format.");
             self.request.close()
 
         # Add the data to the database
@@ -48,6 +50,7 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
         sql.session.add(p)
         sql.session.commit()
 
+        print "Data successfully stored on the database, probably."
         self.request.close()
     
     def receive_bytes(self, size):
@@ -60,6 +63,7 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
                 last_read = self.request.recv(size)
             except:
                 print "Error receiving message"
+                logging.exception("Error receiving message");
                 return None
             
             total_data += last_read
@@ -79,6 +83,9 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
 
 
 if __name__ == "__main__":
+    
+    logging.basicConfig(filename='sensorDataHandler.log', level=logging.DEBUG)
+
     PORT = 9999
     server = ThreadedTCPServer(('localhost', PORT), SensorDataHandler)
     try:
