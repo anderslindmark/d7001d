@@ -14,6 +14,7 @@ def getCarType(raw_data):
 	file.close()
 
 	cmd = CMD_BASE + "-f type " + tmpfile
+	print "(DEBUG rawdata.py:getCarType) cmd: ", cmd
 	cmd = shlex.split(cmd)
 	p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE)
 	line = p.stdout.readline().strip()
@@ -40,6 +41,8 @@ def getAvgSpeed(path, files):
 	for file in files:
 		cmd += path + "/" + file + " "
 	
+	print "(DEBUG rawdata.py:getAvgSpeed) cmd: ", cmd
+
 	cmd = shlex.split(cmd)
 	
 	p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE)
