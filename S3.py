@@ -10,7 +10,7 @@ import sys
 
 # Creates a file in the bucket, returns a url
 def uploadFile(filename, content):
-	object = Key(aws_common.S3_BUCKET_NAME)
+	object = Key(bucket)
 	object.key = aws_common.S3_RESPONSE_PREFIX + filename
 	object.set_contents_from_string(content)
 
