@@ -11,8 +11,7 @@ cd $WORKDIR
 git fetch origin
 
 # Get list of changes
-#LOG=`git log -- head..origin/master --oneline`
-LOG=$(git log -- head..origin/master --oneline)
+LOG=$(git log HEAD..origin/master)
 
 # Check if anything has been done
 if [[ "$LOG" != "" ]]; then
