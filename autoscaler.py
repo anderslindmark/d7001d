@@ -27,7 +27,7 @@ LOAD_BALANCER_PORT = 9999
 #= Load balancinging =#
 #=====================#
 
-lbConnection = boto.ec2.elb.connect_to_region(REGION)
+lb_connection = boto.ec2.elb.connect_to_region(REGION)
 
 # Periodically check that TCP connections can be made to all instanes
 hc = HealthCheck(
@@ -43,7 +43,7 @@ hc = HealthCheck(
 ports = [(LOAD_BALANCER_PORT, INSTANCE_PORT, 'tcp')]
 
 # The crap below might want a *list* of availability zones?
-lb = lbConnection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONES, ports)
+lb = lb_connection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONES, ports)
 lb.configure_health_check(hc)
 
 dnsName = lb.dns_name
@@ -132,12 +132,12 @@ cloudwatch.create_alarm(scale_up_alarm)
 # Terminate an instance if the existing cluster
 # averages less than 40% CPU for two minutes
 scale_down_alarm = MetricAlarm(
-    name = 'scale_down_on_cpu', namespace = 'AWS/EC2',
-    metric = 'CPUUtilization', statistic = 'Average',
-    comparison = '<', threshold = '40',
-    period = '60', evaluation_periods = 2,
-    alarm_actions = [scale_down_policy.policy_arn],
-    dimensions = alarm_dimensions)
+    name='scale_down_on_cpu', namespace='AWS/EC2',
+    metric='CPUUtilization', statistic='Average',
+    comparison='<', threshold='40',
+    period='60', evaluation_periods = 2,
+    alarm_actions=[scale_down_policy.policy_arn],
+    dimensions=alarm_dimensions)
 
 cloudwatch.create_alarm(scale_down_alarm)
 
