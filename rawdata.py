@@ -3,7 +3,7 @@ import os
 import shlex
 import subprocess
 
-CMD_BASE = "./process64/process64 "
+CMD_BASE = "/home/ubuntu/process64/process64 "
 CMD_TYPE = "-f type"
 CMD_SPEED = "-f speed"
 
