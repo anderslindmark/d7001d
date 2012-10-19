@@ -13,7 +13,7 @@ def getCarType(raw_data):
 	file.write(raw_data)
 	file.close()
 
-	cmd = CMD_BASE + "-f type " + tmpfile
+	cmd = CMD_BASE + "-f type -n 1 " + tmpfile
 	print "(DEBUG rawdata.py:getCarType) cmd: ", cmd
 	cmd = shlex.split(cmd)
 	p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE)
