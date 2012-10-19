@@ -14,12 +14,14 @@ from boto.ec2.cloudwatch import MetricAlarm
 SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
 AMI = 'ami-5f02022b'
 KEY = '12_LP1_KEY_D7001D_nicnys-8'
-AUTOSCALING_GROUP = 'nicnys-8-sensorServer-ag'
+AUTOSCALING_GROUP = 'nicnys-8-sensorServer-as'
 LAUNCH_CONFIGURATION = 'nicnys-8-sensorServer-lc'
-LOAD_BALANCER = 'nicnys-8-lb'
+LOAD_BALANCER = 'nicnys-8-sensorServer-lb'
 REGION = 'eu-west-1'
 AVAILABILITY_ZONE = 'eu-west-1b'
 
+INSTANCE_PORT = 9999
+LOAD_BALANCER_PORT = 9999
 
 #=====================#
 #= Load balancinging =#
@@ -27,20 +29,25 @@ AVAILABILITY_ZONE = 'eu-west-1b'
 
 lbConnection = boto.ec2.elb.connect_to_region(REGION)
 
+# Periodically check that TCP connections can be made to all instanes
 hc = HealthCheck(
+    # Seconds between each check:
     interval = 20,
+    # Consecutive failed checks before an instance is deemed dead:
     healthy_threshold = 3,
-    unhealthy_threshold = 5,
-    target = 'TCP:9999')
+    # Seconds the loadbalancer will wait for a check:
+    unhealthy_threshold = 5, 
+    target = 'TCP:' + str(INSTANCE_PORT))
 
-regions = [AVAILABILITY_ZONE] # I can remove the brackets, I guess?
-ports = [(9999, 9999, 'tcp')]
+# Listen to traffic on port 9999, forward to port 9999 on the instances
+ports = [(LOAD_BALANCER_PORT, INSTANCE_PORT, 'tcp')]
 
-lb = lbConnection.create_load_balancer(LOAD_BALANCER, regions, ports)
+# The crap below might want a *list* of availability zones?
+lb = lbConnection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONE, ports)
 lb.configure_health_check(hc)
 
 dnsName = lb.dns_name
-print("URL: " + dnsName) # This should be removed later
+print("URL: " + dnsName)
 
 
 #===============#
@@ -129,3 +136,18 @@ scale_down_alarm = MetricAlarm(
     dimensions = alarm_dimensions)
 
 cloudwatch.create_alarm(scale_down_alarm)
+
+
+"""
+#=========================================#
+#= Just some stuff I want to remember... =#
+#=========================================#
+
+
+ag = asConnection.get_all_groups(names=['nicnys-8-sensorServer-as'])[0]
+[i.instance_id for i in ag.instances]
+
+ag.shutdown_instances()
+ag.delete()
+
+"""
