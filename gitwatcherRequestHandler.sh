@@ -19,7 +19,7 @@ if [[ "$LOG" != "" ]]; then
 	echo -n "Stopping service... "
 	PID=`ps a | grep RequestHandler.py | grep -v grep | awk '{print $1}'`
 	if [[ "$PID" != "" ]]; then
-		kill $PID
+		kill -9 $PID
 		echo "Done"
 	else
 		echo "No service found"
