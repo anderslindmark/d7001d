@@ -8,6 +8,7 @@ from tempfile import mkdtemp
 import dateutil.parser
 import rawdata
 import aws_common
+from cartype_sqs import enQueue
 
 DB_DEBUG = True
 
@@ -24,7 +25,7 @@ class Packet(Base):
 	raw_data = Column(BLOB)
 	raw_data_size = Column(Integer)
 
-	def __init__(self, cell_id, node_id, road_side, timestamp, raw_data_size, raw_data):
+	def __init__(self, cell_id, node_id, road_side, timestamp, raw_data_size, raw_data, commit=True):
 		self.cell_id = cell_id
 		self.node_id = node_id
 		self.road_side = road_side
@@ -35,6 +36,13 @@ class Packet(Base):
 		self.raw_data = raw_data
 		#self.cartype = rawdata.getCarType(raw_data)
 		self.cartype = None
+
+		if commit:
+			# Commit right away so that p.id is available and can be placed onto queue
+			session.add(self)
+			session.commit()
+			enQueue(self.id)
+
 
 	def __repr__(self):
 		return "<Packet('%d', '%d', '%s', '*DATA*', '%s', '%s')>" % (self.cell_id, self.node_id, self.timestamp, self.raw_data_size, self.cartype)
@@ -107,7 +115,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
-	p = Packet(2, 3, 0, 1350555611626, 8, "rawdata2")
+	p = Packet(99, 99, 0, 1350555611626, 8, "rawdata2")
 	##session.add(p)
 	##session.commit()
 	

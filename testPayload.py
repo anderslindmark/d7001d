@@ -24,7 +24,5 @@ while len(datafiles):
 	time = (BASETIME + timeoffset) * 1000
 
 	packet = sql.Packet(cell, node, roadside, time, size, data)
-	sql.session.add(packet)
-	sql.session.commit()	
 
 
