@@ -1,10 +1,10 @@
-import cartype_sqs as sqs
+from cartype_sqs import deQueue
 from sql import session, Packet
 from time import sleep
 
 while True:
 	# Fetch a packet id
-	packet_id = sqs.deQueue()
+	packet_id = deQueue()
 	if packet_id is None:
 		sleep(10)
 	else:
@@ -15,5 +15,5 @@ while True:
 			# Calculate cartype
 			packet.getCarType()
 			session.add(packet)
-			sesion.commit()
+			session.commit()
 
