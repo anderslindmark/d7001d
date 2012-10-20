@@ -146,7 +146,7 @@ class Request:
             for carKey in carMap:
                 relevantPackets = []
                 for p in packets:
-                    if int(p.cartype) == carKey and int(p.road_side) == dirKey:
+                    if int(p.getCarType()) == carKey and int(p.road_side) == dirKey:
                         relevantPackets.append(p)
                 
                 eCar = ET.SubElement(eDir, 'CarType' + carMap[carKey])
@@ -267,13 +267,13 @@ class Request:
         
         eFirst = ET.SubElement(eCell, 'FirstCar')
         eCar = ET.SubElement(eFirst, 'CarType')
-        eCar.text = carMap[firstCarPacket.cartype]
+        eCar.text = carMap[firstCarPacket.getCarType()]
         eTime = ET.SubElement(eFirst, 'TimeStamp')
         eTime.text = str(firstCarPacket.timestamp)
         
         eLast = ET.SubElement(eCell, 'LastCar')
         eCar = ET.SubElement(eLast, 'CarType')
-        eCar.text = carMap[lastCarPacket.cartype]
+        eCar.text = carMap[lastCarPacket.getCarType()]
         eTime = ET.SubElement(eLast, 'TimeStamp')
         eTime.text = str(lastCarPacket.timestamp)
         

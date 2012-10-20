@@ -33,10 +33,18 @@ class Packet(Base):
 		self.timestamp = t.strftime("%Y-%m-%d %H:%M:%S")
 		self.raw_data_size = raw_data_size
 		self.raw_data = raw_data
-		self.cartype = rawdata.getCarType(raw_data)
+		#self.cartype = rawdata.getCarType(raw_data)
+		self.cartype = None
 
 	def __repr__(self):
 		return "<Packet('%d', '%d', '%s', '*DATA*', '%s', '%s')>" % (self.cell_id, self.node_id, self.timestamp, self.raw_data_size, self.cartype)
+
+	def getCarType(self):
+		if self.cartype is None:
+			self.cartype = rawdata.getCarType(self.raw_data)
+			session.add(self)
+			session.commit()
+		return self.cartype
 
 	@staticmethod
 	def _fixTimes(time):
