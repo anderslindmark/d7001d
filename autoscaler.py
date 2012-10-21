@@ -1,4 +1,6 @@
 import boto.ec2.elb
+import os
+import errno
 from boto.ec2.elb import HealthCheck
 
 from boto.ec2.autoscale import AutoScaleConnection
@@ -12,7 +14,7 @@ from boto.ec2.cloudwatch import MetricAlarm
 #=============#
 
 SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
-AMI = 'ami-5f02022b'
+AMI = 'ami-6995951d'
 KEY = '12_LP1_KEY_D7001D_nicnys-8'
 AUTOSCALING_GROUP = 'nicnys-8-sensorServer-as'
 LAUNCH_CONFIGURATION = 'nicnys-8-sensorServer-lc'
@@ -39,11 +41,25 @@ hc = HealthCheck(
     unhealthy_threshold = 5, 
     target = 'TCP:' + str(INSTANCE_PORT))
 
-# Listen to traffic on port 9999, forward to port 9999 on the instances
-ports = [(LOAD_BALANCER_PORT, INSTANCE_PORT, 'tcp')]
+"""
+# If there already exists a loadbalancer, use it
+try:
+    lb_list = lb_connection.get_all_load_balancers(load_balancer_names=[LOAD_BALANCER])
+    lb = lb_list[0]
 
-# The crap below might want a *list* of availability zones?
-lb = lb_connection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONES, ports)
+# Otherwise, create a new one
+except:
+
+    # Listen to traffic on port 9999, forward to port 9999 on the instances
+    ports = [(LOAD_BALANCER_PORT, INSTANCE_PORT, 'tcp')]
+    lb = lb_connection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONES, ports)
+
+"""
+
+# We assume that the loadbalancer already exists
+lb_list = lb_connection.get_all_load_balancers(load_balancer_names=[LOAD_BALANCER])
+lb = lb_list[0]
+
 lb.configure_health_check(hc)
 
 dnsName = lb.dns_name
@@ -63,8 +79,10 @@ lc = LaunchConfiguration(
     key_name = KEY,
     security_groups = [SECURITY_GROUP])
 
-# Create an autoscale group associated with the launch configuration
-ag = AutoScalingGroup(
+# Create a new autoscaling group if it doesn't already exist
+my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
+if (my_groups == []):
+    ag = AutoScalingGroup(
     group_name = AUTOSCALING_GROUP,
     load_balancers = [LOAD_BALANCER],
     availability_zones = AVAILABILITY_ZONES,
@@ -72,12 +90,10 @@ ag = AutoScalingGroup(
     min_size = 1, max_size = 2,
     connection = as_connection)
 
-# Create a new autoscaling group if it doesn't already exist
-my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
-if (my_groups == []):
     as_connection.create_auto_scaling_group(ag)
-    my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
-ag = my_groups[0]
+    
+else:
+    ag = my_groups[0]
 
 #====================#
 #= Scaling policies =#

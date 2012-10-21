@@ -3,6 +3,9 @@ import threading
 import SocketServer
 import sql
 import logging
+import os
+import errno
+
 from struct import unpack
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -35,11 +38,11 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
         
         # Convert the data to the right format
         try:
-            cell_id = int(self.bytes_to_int(cell_id))
-            node_id = int(self.bytes_to_int(node_id))
+            cell_id = int(bytes_to_int(cell_id))
+            node_id = int(bytes_to_int(node_id))
             road_side = ord(road_side)
-            timestamp = int(self.bytes_to_long(timestamp))
-            size = int(self.bytes_to_int(size))
+            timestamp = int(bytes_to_long(timestamp))
+            size = int(bytes_to_int(size))
         except:
             print "Faulty data format"
             logging.exception("Faulty data format.");
@@ -69,20 +72,10 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             if size <= 0: break
         return total_data
 
-    def bytes_to_int(self, byteArray):
-        """Convert an array of 4 bytes to an unsigned integer."""
-        result, = (unpack('>I', byteArray))
-        return result
-
-    def bytes_to_long(self, byteArray):
-        """Convert an array of 8 bytes to an unsigned long long."""
-        result, = (unpack('>Q', byteArray))
-        return result
-
-
 if __name__ == "__main__":
-    
-    logging.basicConfig(filename='sensorDataHandler.log', level=logging.DEBUG)
+
+    make_sure_path_exists('logs')
+    logging.basicConfig(filename='logs/sensorDataHandler.log', level=logging.DEBUG)
 
     PORT = 9999
     server = ThreadedTCPServer(('localhost', PORT), SensorDataHandler)
@@ -90,5 +83,27 @@ if __name__ == "__main__":
         server.serve_forever()
     except KeyboardInterrupt:
         server.shutdown()
-    
 
+
+def bytes_to_int(byteArray):
+    """Convert an array of 4 bytes to an unsigned integer."""
+    result, = (unpack('>I', byteArray))
+    return result
+
+
+def bytes_to_long(byteArray):
+    """Convert an array of 8 bytes to an unsigned long long."""
+    result, = (unpack('>Q', byteArray))
+    return result
+
+    
+def make_sure_path_exists(path):
+    """
+    Creates the given folder if it doesn't already exist,
+    in a tread-safe manner
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
