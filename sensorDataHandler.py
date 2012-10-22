@@ -47,9 +47,8 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             self.request.close()
             return
 
-        f = open('NickesTestFile', 'w')
-        f.write("Hello!)
-        f.close()
+        # Read the specified number of bytes of raw data
+        raw_data = self.receive_bytes(size)
         
         # Add the data to the database
         p = sql.Packet(cell_id, node_id, road_side, timestamp, size, raw_data)
