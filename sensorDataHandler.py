@@ -45,7 +45,12 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             print "Faulty data format"
             logging.exception("Faulty data format.");
             self.request.close()
+            return
 
+        f = open('NickesTestFile', 'w')
+        f.write("Cell id: " + str(cell_id))
+        f.close()
+        
         # Add the data to the database
         p = sql.Packet(cell_id, node_id, road_side, timestamp, size, raw_data)
 
