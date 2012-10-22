@@ -9,7 +9,6 @@ import errno
 from struct import unpack
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    
     """A server class that starts a new thread for each request it handles."""
   
     def server_bind(self):
@@ -20,7 +19,6 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
 class SensorDataHandler(SocketServer.BaseRequestHandler):
-
     """
     Request handler that receives data from the sensor network and
     stores it in our database.
@@ -100,7 +98,7 @@ def make_sure_path_exists(path):
 if __name__ == "__main__":
 
     make_sure_path_exists('/home/ubuntu/logs/')
-    logging.basicConfig(filename='home/ubuntu/logs/sensorDataHandler.log', level=logging.DEBUG)
+    logging.basicConfig(filename='/home/ubuntu/logs/sensorDataHandler.log', level=logging.DEBUG)
 
     PORT = 9999
     server = ThreadedTCPServer(('', PORT), SensorDataHandler)
