@@ -57,7 +57,7 @@ def getAvgSpeed(path, files):
 
 	# Clean up
 	for file in files:
-		os.remove(path + "/" + file)
+		os.remove(file)
 
 	os.rmdir(path)
 
