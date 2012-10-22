@@ -27,6 +27,9 @@ class Packet(Base):
 	raw_data_size = Column(Integer)
 
 	def __init__(self, cell_id, node_id, road_side, timestamp, raw_data_size, raw_data, commit=True):
+		global first_timestamp
+		global last_timestamp
+
 		self.cell_id = cell_id
 		self.node_id = node_id
 		self.road_side = road_side
@@ -40,10 +43,10 @@ class Packet(Base):
 
 		if commit:
 			# Commit right away so that p.id is available and can be placed onto queue
-			if self.timestamp < first_timestamp:
-				first_timestamp = self.timestamp
-			if self.timestamp > last_timestamp:
-				last_timestamp = self.timestamp
+			if t < first_timestamp:
+				first_timestamp = t
+			if t > last_timestamp:
+				last_timestamp = t
 			session.add(self)
 			session.commit()
 			enQueue(self.id)
@@ -81,6 +84,9 @@ class Packet(Base):
 
 	@staticmethod
 	def fetchInterval(cell_id, startTime, stopTime):
+		global first_timestamp
+		global last_timestamp
+
 		startTime = Packet._fixTimes(startTime)
 		stopTime = Packet._fixTimes(stopTime)
 
