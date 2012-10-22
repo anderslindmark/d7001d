@@ -116,7 +116,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
-	p = Packet(99, 99, 0, 1350555611626, 8, "rawdata2")
+	#p = Packet(99, 99, 0, 1350555611626, 8, "rawdata2")
 	##session.add(p)
 	##session.commit()
 	
