@@ -1,0 +1,4 @@
+#!/bin/sh
+cd /home/ubuntu/project
+screen -S cartype -d -m nice -n 10 python cartype_processor.py
+

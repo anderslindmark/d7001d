@@ -1,5 +1,5 @@
 #!/bin/sh
 cd /home/ubuntu/project
 git pull
-screen -d -m python RequestHandler.py
+screen -S request -d -m python RequestHandler.py
 
