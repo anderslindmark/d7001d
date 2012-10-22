@@ -9,6 +9,7 @@ import dateutil.parser
 import rawdata
 import aws_common
 from cartype_sqs import enQueue
+from error import StartTimeError, StopTimeError, CellIDError
 
 DB_DEBUG = True
 
@@ -39,6 +40,10 @@ class Packet(Base):
 
 		if commit:
 			# Commit right away so that p.id is available and can be placed onto queue
+			if self.timestamp < first_timestamp:
+				first_timestamp = self.timestamp
+			if self.timestamp > last_timestamp:
+				last_timestamp = self.timestamp
 			session.add(self)
 			session.commit()
 			enQueue(self.id)
@@ -78,6 +83,20 @@ class Packet(Base):
 	def fetchInterval(cell_id, startTime, stopTime):
 		startTime = Packet._fixTimes(startTime)
 		stopTime = Packet._fixTimes(stopTime)
+
+		# Check start and stop times
+		t_start = dateutil.parser.parse(startTime)
+		if t_start < first_timestamp or t_start > last_timestamp:
+			raise StartTimeError
+		t_stop = dateutil.parser.parse(stopTime)
+		if t_stop < first_timestamp or t_stop > last_timestamp:
+			raise StopTimeError
+
+		# Check if cell_id exists
+		cell_count = session.query(Packet.cell_id).filter(Packet.cell_id == cell_id).count()
+		if cell_count == 0:
+			raise CellIDError
+
 		l = []
 		for packet in session.query(Packet).filter(and_(Packet.cell_id == cell_id, Packet.timestamp.between(startTime, stopTime))).order_by(Packet.timestamp):
 			l.append(packet)
@@ -115,7 +134,13 @@ engine = create_engine(ENGINE_STRING, echo=DB_DEBUG)
 Session = sessionmaker(bind=engine)
 session = Session()
 
+timestamps = session.query(Packet.timestamp).order_by(Packet.timestamp).all()
+first_timestamp = timestamps[0]
+last_timestamp = timestamps[-1]
+
+
 if __name__ == "__main__":
+	pass
 	#p = Packet(99, 99, 0, 1350555611626, 8, "rawdata2")
 	##session.add(p)
 	##session.commit()
@@ -138,5 +163,3 @@ if __name__ == "__main__":
 	# Get XML strings etc
 	#  url = S3.uploadFile(filnamn, xmltext)
 	# Done.
-
-
