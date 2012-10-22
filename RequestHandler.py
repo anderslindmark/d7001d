@@ -31,10 +31,10 @@ class RequestHandler(threading.Thread):
 
     def run(self):
         while True:
-            message = inQueue.read()
+            message = inQueue.read(180)
             if message is not None:
-                inQueue.delete_message(message)
                 self.handleMessage(message)
+                inQueue.delete_message(message)
             #Sleep maybe?
             time.sleep(2)
 
