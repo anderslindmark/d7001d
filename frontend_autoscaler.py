@@ -4,7 +4,6 @@ from boto.ec2.autoscale import LaunchConfiguration
 from boto.ec2.autoscale import AutoScalingGroup
 from boto.ec2.autoscale import ScalingPolicy
 from boto.ec2.cloudwatch import MetricAlarm
-from boto.ec2 import regions
 
 import boto.ec2.autoscale
 

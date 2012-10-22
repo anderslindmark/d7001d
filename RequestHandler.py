@@ -5,6 +5,7 @@ import Request
 from boto.sqs.message import Message
 from boto.sqs.connection import SQSConnection
 import aws_common
+from boto.sqs import regions
 
 class RequestHandler(threading.Thread):
 

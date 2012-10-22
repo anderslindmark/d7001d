@@ -8,9 +8,18 @@ import aws_common
 
 if __name__ == "__main__":
 
-    conn = SQSConnection(aws_common.AWS_ACCESS_KEY, aws_common.AWS_SECRET_KEY)
-    inQueue = conn.create_queue("frontendInQueue")
-    outQueue = conn.create_queue("frontendOutQueue")
+    eu_region = None
+        for region in regions():
+            if region.name == REGION:
+                eu_region = region
+                break
+    print eu_region
+    
+    conn = SQSConnection(aws_access_key_id=aws_common.AWS_ACCESS_KEY,
+                         aws_secret_access_key=aws_common.AWS_SECRET_KEY,
+                         region=eu_region)
+    inQueue = conn.create_queue("12_LP1_SQS_D7001D_jimnys-8_frontend-in")
+    # outQueue = conn.create_queue("frontendOutQueue")
 
     for i in range(1, 5):
         m = Message()
