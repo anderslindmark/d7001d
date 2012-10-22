@@ -16,8 +16,8 @@ import aws_common
 SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
 AMI = 'ami-c7a8a8b3'
 KEY = '12_LP1_KEY_D7001D_nicnys-8'
-AUTOSCALING_GROUP = 'nicnys-8-requestHandler-as'
-LAUNCH_CONFIGURATION = 'nicnys-8-requestHandler-lc'
+AUTOSCALING_GROUP = 'nicnys-8-requestHandler-as-eu'
+LAUNCH_CONFIGURATION = 'nicnys-8-requestHandler-lc-eu'
 REGION = 'eu-west-1'
 AVAILABILITY_ZONE = 'eu-west-1b'
 

@@ -42,10 +42,10 @@ class RequestHandler(threading.Thread):
 if __name__ == "__main__":
 
     eu_region = None
-        for region in regions():
-            if region.name == REGION:
-                eu_region = region
-                break
+    for region in regions():
+        if region.name == REGION:
+            eu_region = region
+            break
     print eu_region
     
     conn = SQSConnection(aws_access_key_id=aws_common.AWS_ACCESS_KEY,
