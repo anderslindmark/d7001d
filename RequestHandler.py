@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     eu_region = None
     for region in regions():
-        if region.name == REGION:
+        if region.name == 'eu-west-1':
             eu_region = region
             break
     print eu_region
