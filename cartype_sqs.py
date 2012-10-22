@@ -23,4 +23,7 @@ def deQueue():
 		return None
 	msg = msglist[0]
 	sqs_connection.delete_message(q, msg)
-	return int(msg.get_body())
+	try:
+		return int(msg.get_body())
+	except:
+		return None
