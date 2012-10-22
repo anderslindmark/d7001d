@@ -31,3 +31,5 @@ aws_common.py
 
 #Key-files
 *.pem
+
+.DS_Store
