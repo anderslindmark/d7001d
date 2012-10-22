@@ -6,6 +6,7 @@ from boto.ec2.autoscale import LaunchConfiguration
 from boto.ec2.autoscale import AutoScalingGroup
 from boto.ec2.autoscale import ScalingPolicy
 from boto.ec2.cloudwatch import MetricAlarm
+from boto.ec2.autoscale import Tag
 
 #=============#
 #= Constants =#
@@ -25,6 +26,7 @@ SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
 AMI = 'ami-6995951d'
 KEY = '12_LP1_KEY_D7001D_nicnys-8'
 AUTOSCALING_GROUP = 'nicnys-8-sensorDataHandler-as'
+INSTANCE_NAME = 'nicnys-8-sensorDataHandler-ec2'
 LAUNCH_CONFIGURATION = 'nicnys-8-sensorDataHandler-lc'
 LOAD_BALANCER = 'nicnys-8-sensorDataHandler-lb'
 REGION = 'eu-west-1'
@@ -48,7 +50,6 @@ hc = HealthCheck(
     # Seconds the loadbalancer will wait for a check:
     unhealthy_threshold = 5, 
     target = 'TCP:' + str(INSTANCE_PORT))
-
 
 # If there already exists a loadbalancer, use it
 try:
@@ -177,4 +178,15 @@ def stop_autoscaling():
     ag.shutdown_instances()
     ag.delete()
 """
-    
+
+# create a tag for the austoscale group
+name_tag = Tag(key='Name', value = INSTANCE_NAME, propagate_at_launch=True, resource_id=AUTOSCALING_GROUP)
+course_tag = Tag(key='course', value = 'D7001D', propagate_at_launch=True, resource_id=AUTOSCALING_GROUP)
+user_tag = Tag(key='user', value = 'nicnys-8', propagate_at_launch=True, resource_id=AUTOSCALING_GROUP)
+
+# Add the tag to the autoscale group
+as_connection.create_or_update_tags([name_tag, course_tag, user_tag])
+
+
+
+
