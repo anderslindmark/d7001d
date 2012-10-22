@@ -28,11 +28,16 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
         """Handle incoming TCP traffic."""
         
         # Read data from the network
-        cell_id = self.receive_bytes(4)
-        node_id = self.receive_bytes(4)
-        road_side = self.receive_bytes(1)
-        timestamp = self.receive_bytes(8)
-        size = self.receive_bytes(4)
+        try:
+            cell_id = self.receive_bytes(4)
+            node_id = self.receive_bytes(4)
+            road_side = self.receive_bytes(1)
+            timestamp = self.receive_bytes(8)
+            size = self.receive_bytes(4)
+        except:
+            print "Error receiving message"
+            logging.exception("Error receiving message");
+            return
         
         # Convert the data to the right format
         try:
@@ -48,7 +53,11 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             return
 
         # Read the specified number of bytes of raw data
-        raw_data = self.receive_bytes(size)
+        try:
+            raw_data = self.receive_bytes(size)
+        except:
+            print "Error receiving raw data"
+            logging.exception("Error receiving raw data");
         
         # Add the data to the database
         p = sql.Packet(cell_id, node_id, road_side, timestamp, size, raw_data)
@@ -61,14 +70,7 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
         total_data = ""
         last_read = ""
         while True:
-            
-            try:
-                last_read = self.request.recv(size)
-            except:
-                print "Error receiving message"
-                logging.exception("Error receiving message");
-                return None
-            
+            last_read = self.request.recv(size)            
             total_data += last_read
             size -= len(last_read)
             if size <= 0: break
@@ -102,7 +104,7 @@ def make_sure_path_exists(path):
 if __name__ == "__main__":
 
     make_sure_path_exists('/home/ubuntu/logs/')
-    logging.basicConfig(filename='/home/ubuntu/logs/sensorDataHandler.log', level=logging.DEBUG)
+    logging.basicConfig(filename='/home/ubuntu/logs/sensorDataHandler.log', level=logging.ERROR)
 
     PORT = 9999
     server = ThreadedTCPServer(('', PORT), SensorDataHandler)
