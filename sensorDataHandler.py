@@ -72,18 +72,6 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             if size <= 0: break
         return total_data
 
-if __name__ == "__main__":
-
-    make_sure_path_exists('logs')
-    logging.basicConfig(filename='logs/sensorDataHandler.log', level=logging.DEBUG)
-
-    PORT = 9999
-    server = ThreadedTCPServer(('localhost', PORT), SensorDataHandler)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        server.shutdown()
-
 
 def bytes_to_int(byteArray):
     """Convert an array of 4 bytes to an unsigned integer."""
@@ -107,3 +95,16 @@ def make_sure_path_exists(path):
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
+
+
+if __name__ == "__main__":
+
+    make_sure_path_exists('home/ubuntu/logs/')
+    logging.basicConfig(filename='home/ubuntu/logs/sensorDataHandler.log', level=logging.DEBUG)
+
+    PORT = 9999
+    server = ThreadedTCPServer(('', PORT), SensorDataHandler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.shutdown()

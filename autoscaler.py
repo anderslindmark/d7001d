@@ -1,6 +1,4 @@
 import boto.ec2.elb
-import os
-import errno
 from boto.ec2.elb import HealthCheck
 
 from boto.ec2.autoscale import AutoScaleConnection
@@ -12,13 +10,23 @@ from boto.ec2.cloudwatch import MetricAlarm
 #=============#
 #= Constants =#
 #=============#
-
+"""
 SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
 AMI = 'ami-6995951d'
 KEY = '12_LP1_KEY_D7001D_nicnys-8'
 AUTOSCALING_GROUP = 'nicnys-8-sensorServer-as'
 LAUNCH_CONFIGURATION = 'nicnys-8-sensorServer-lc'
 LOAD_BALANCER = 'nicnys-8-sensorServer-lb'
+REGION = 'eu-west-1'
+AVAILABILITY_ZONES = ['eu-west-1b']
+"""
+
+SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
+AMI = 'ami-6995951d'
+KEY = '12_LP1_KEY_D7001D_nicnys-8'
+AUTOSCALING_GROUP = 'nicnys-8-sensorDataHandler-as'
+LAUNCH_CONFIGURATION = 'nicnys-8-sensorDataHandler-lc'
+LOAD_BALANCER = 'nicnys-8-sensorDataHandler-lb'
 REGION = 'eu-west-1'
 AVAILABILITY_ZONES = ['eu-west-1b']
 
@@ -72,12 +80,19 @@ print("URL: " + dnsName)
 
 as_connection = boto.ec2.autoscale.connect_to_region(REGION)
 
-# Create a launch configuration; the set of information needed
-# by the autoscale group to launch new instances
-lc = LaunchConfiguration(
+# If there is no launch configuration, create it
+configurations = as_connection.get_all_launch_configurations(names=[LAUNCH_CONFIGURATION])
+if (configurations == []):
+    lc = LaunchConfiguration(
     name = LAUNCH_CONFIGURATION, image_id = AMI,
     key_name = KEY,
     security_groups = [SECURITY_GROUP])
+
+    as_connection.create_launch_configuration(lc)
+    
+# Otherwise, use the existing one
+else:
+    lc = configurations[0]
 
 # Create a new autoscaling group if it doesn't already exist
 my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
