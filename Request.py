@@ -52,9 +52,11 @@ class Request:
             return self.fakeCellIDError()
         except error.XMLError:
             return self.fakeXMLError()
-#except Exception:
-                #            return self.fakeXMLError()
+        except Exception:
+            # Return xml-error for any other error :)
+            return self.fakeXMLError()
 
+                
     def fakeXMLError(self):
         return """
 <""" + self.id + """>
@@ -114,15 +116,12 @@ class Request:
             eCell = ET.SubElement(root, 'Cell')
             eId = ET.SubElement(eCell, 'CellID')
             eId.text = str(cellID)
-            # add neighbors
+            # add neighbors?
                 
         return ET.tostring(root)
 
 
     def cellStatSpeedReply(self):
-        
-        # checkCellID(req.cellID)
-        # checkTimeInRange(req.startTime, req.stopTime)
         
         root = ET.Element(self.id)
         
@@ -243,9 +242,6 @@ class Request:
 
     def cellStatNetReply(self):
         
-        #checkCellID(req.cellID)
-        #checkTimeInRange(req.startTime, req.stopTime)
-        
         root = ET.Element(self.id)
         
         eType = ET.SubElement(root, 'RequestType')
@@ -260,22 +256,44 @@ class Request:
         
         packets = sql.Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
         
-        firstCarPacket = packets[0]
-        lastCarPacket = packets[len(packets) - 1]
+        eFirst = ET.SubElement(eCell, 'FirstCar')
+        eLast = ET.SubElement(eCell, 'LastCar')
         
+        # map(chr, range(65, 65 + numCarTypes)) -> ['A', 'B', 'C', ...]
         carMap = { 1:'A', 2:'B', 3:'C', 4:'D', 5:'E', 6:'F' }
         
-        eFirst = ET.SubElement(eCell, 'FirstCar')
-        eCar = ET.SubElement(eFirst, 'CarType')
-        eCar.text = carMap[firstCarPacket.getCarType()]
-        eTime = ET.SubElement(eFirst, 'TimeStamp')
-        eTime.text = str(firstCarPacket.timestamp)
-        
-        eLast = ET.SubElement(eCell, 'LastCar')
-        eCar = ET.SubElement(eLast, 'CarType')
-        eCar.text = carMap[lastCarPacket.getCarType()]
-        eTime = ET.SubElement(eLast, 'TimeStamp')
-        eTime.text = str(lastCarPacket.timestamp)
+        if len(packets) == 0:
+            # Leave the fields empty if there are no cars in the db
+            pass
+        elif len(packets) == 1:
+            # Only compute car type once if firstCar == lastCar,
+            # (this saves time if the car type is not already computed)
+            carType = carMap[int(packets[0].getCarType())]
+            timeStamp = str(packets[0].timestamp)
+            
+            eCar = ET.SubElement(eFirst, 'CarType')
+            eCar.text = carType
+            eTime = ET.SubElement(eFirst, 'TimeStamp')
+            eTime.text = timeStamp
+            
+            eCar = ET.SubElement(eLast, 'CarType')
+            eCar.text = carType
+            eTime = ET.SubElement(eLast, 'TimeStamp')
+            eTime.text = timeStamp
+            
+        else:
+            firstCarPacket = packets[0]
+            lastCarPacket = packets[len(packets) - 1]
+            
+            eCar = ET.SubElement(eFirst, 'CarType')
+            eCar.text = carMap[int(firstCarPacket.getCarType())]
+            eTime = ET.SubElement(eFirst, 'TimeStamp')
+            eTime.text = str(firstCarPacket.timestamp)
+            
+            eCar = ET.SubElement(eLast, 'CarType')
+            eCar.text = carMap[int(lastCarPacket.getCarType())]
+            eTime = ET.SubElement(eLast, 'TimeStamp')
+            eTime.text = str(lastCarPacket.timestamp)
         
         eTotalCar = ET.SubElement(eCell, 'TotalCar')
         eTotalCar.text = str(len(packets))

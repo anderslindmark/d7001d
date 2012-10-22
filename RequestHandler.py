@@ -24,48 +24,39 @@ class RequestHandler(threading.Thread):
         url = S3.uploadFile(request.id, reply)
         
         #print url
-        
         m = Message()
         m.set_body(url)
         outQueue.write(m)
 
     def run(self):
         while True:
-            messages = inQueue.get_messages()
-            if (len(messages) > 0):
-                self.handleMessage(messages[0])
-                inQueue.delete_message(messages[0])
+            message = inQueue.read()
+            if message is not None:
+                inQueue.delete_message(message)
+                self.handleMessage(message)
             #Sleep maybe?
             time.sleep(2)
 
 
 if __name__ == "__main__":
 
-    conn = SQSConnection(aws_common.AWS_ACCESS_KEY, aws_common.AWS_SECRET_KEY)
-    inQueue = conn.create_queue("frontendInQueue")
-    outQueue = conn.create_queue("frontendOutQueue")
-
-    requestHandler = RequestHandler(inQueue, outQueue)
-    requestHandler.start()
-
-    #m = Message()
-    #m.set_body(open('test3.xml', 'r').read())
-    #print m.get_body()
-    #status = inQueue.write(m)
-
-#    for i in range(1, 5):
-#        m = Message()
-#        m.set_body(open('test' + str(i) + '.xml', 'r').read())
-#        print m.get_body()
-#        status = inQueue.write(m)
-#    
-#    requestHandler1 = RequestHandler(inQueue, outQueue)
-#    requestHandler1.start()
-#
-#    requestHandler2 = RequestHandler(inQueue, outQueue)
-#    requestHandler2.start()
-
+    eu_region = None
+        for region in regions():
+            if region.name == REGION:
+                eu_region = region
+                break
+    print eu_region
     
+    conn = SQSConnection(aws_access_key_id=aws_common.AWS_ACCESS_KEY,
+                         aws_secret_access_key=aws_common.AWS_SECRET_KEY,
+                         region=eu_region)
+    inQueue = conn.create_queue("12_LP1_SQS_D7001D_jimnys-8_frontend-in")
+    outQueue = conn.create_queue("12_LP1_SQS_D7001D_jimnys-8_frontend-out")
+
+    # Start five threads with request handlers
+    for i in range(1, 6):
+        requestHandler = RequestHandler(inQueue, outQueue)
+        requestHandler.start()
     
     
 
