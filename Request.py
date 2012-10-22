@@ -52,11 +52,11 @@ class Request:
             return self.fakeCellIDError()
         except error.XMLError:
             return self.fakeXMLError()
-        except Exception as e:
+        #except Exception as e:
             # Return xml-error for any other error :)
-            return str(e) #self.fakeXMLError()
+            # return str(e) #self.fakeXMLError()
         except:
-            return 'RUH-ROH!'
+            return 'RUH-ROH! Something went wrong, but who knows what!?'
                 
     def fakeXMLError(self):
         return """
