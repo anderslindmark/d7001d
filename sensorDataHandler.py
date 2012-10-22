@@ -48,13 +48,11 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             return
 
         f = open('NickesTestFile', 'w')
-        f.write("Cell id: " + str(cell_id))
+        f.write("Hello!)
         f.close()
         
         # Add the data to the database
         p = sql.Packet(cell_id, node_id, road_side, timestamp, size, raw_data)
-        sql.session.add(p)
-        sql.session.commit()
         
         print "Data successfully stored on the database, probably."
         self.request.close()
