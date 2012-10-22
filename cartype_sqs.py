@@ -10,7 +10,7 @@ for region in regions():
 		break
 
 sqs_connection = SQSConnection(aws_common.AWS_ACCESS_KEY, aws_common.AWS_SECRET_KEY, region=eu_region)
-q = sqs_connection.create_queue('12_LP1_SQS_D7001D_anelit-4', 120)
+q = sqs_connection.create_queue('12_LP1_SQS_D7001D_anelit-4-ctype', 120)
 
 
 def enQueue(packetId):
