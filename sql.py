@@ -86,11 +86,13 @@ class Packet(Base):
 
 		# Check start and stop times
 		t_start = dateutil.parser.parse(startTime)
-		if t_start < first_timestamp or t_start > last_timestamp:
+		if t_start > last_timestamp:
 			raise StartTimeError
 		t_stop = dateutil.parser.parse(stopTime)
-		if t_stop < first_timestamp or t_stop > last_timestamp:
+		if t_stop < first_timestamp:
 			raise StopTimeError
+		if t_start > t_stop:
+			raise StartTimeError
 
 		# Check if cell_id exists
 		cell_count = session.query(Packet.cell_id).filter(Packet.cell_id == cell_id).count()
@@ -124,6 +126,11 @@ class Packet(Base):
 			ids.add(row.cell_id)
 		return ids
 
+	@staticmethod
+	def getLastPacketCellID():
+		last = session.query(Packet.cell_id).filter(Packet.timestamp == last_timestamp).one()
+		return last.cell_id
+
 # To create the table; first drop existing table if any and then
 #  Packet.metadata.create_all(engine)
 
@@ -135,8 +142,8 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 timestamps = session.query(Packet.timestamp).order_by(Packet.timestamp).all()
-first_timestamp = timestamps[0]
-last_timestamp = timestamps[-1]
+first_timestamp = timestamps[0].timestamp
+last_timestamp = timestamps[-1].timestamp
 
 
 if __name__ == "__main__":
