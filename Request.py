@@ -52,9 +52,9 @@ class Request:
             return self.fakeCellIDError()
         except error.XMLError:
             return self.fakeXMLError()
-        except Exception:
+        except Exception as e:
             # Return xml-error for any other error :)
-            return self.fakeXMLError()
+            return str(e) #self.fakeXMLError()
 
                 
     def fakeXMLError(self):
