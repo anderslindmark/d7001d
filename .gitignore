@@ -28,3 +28,6 @@ pip-log.txt
 
 #Config file
 aws_common.py
+
+#Key-files
+*.pem
