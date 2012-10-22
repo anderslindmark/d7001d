@@ -26,14 +26,8 @@ def getCarType(raw_data):
 
 	if retval == 0:
 		return line
-	elif retval == -1:
-		# corrupt packet
-		pass
-	elif retval == -2:
-		# bad args
-		pass
 	else:
-		print "Bad retval: %d" % retval
+		return None
 
 def getAvgSpeed(path, files):
 	numfiles = len(files)
@@ -64,12 +58,6 @@ def getAvgSpeed(path, files):
 	# Check return value
 	if retval == 0:
 		error, min, max, avg = line.split()
-		return avg
-	elif retval == -1:
-		# corrupt packet
-		pass
-	elif retval == -2:
-		# bad args
-		pass
+		return (min, max, avg)
 	else:
-		print "Bad retval: %d" % retval
+		return None
