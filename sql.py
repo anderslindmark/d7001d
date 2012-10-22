@@ -93,17 +93,17 @@ class Packet(Base):
 		# Check start and stop times
 		t_start = dateutil.parser.parse(startTime)
 		if t_start > last_timestamp:
-			raise StartTimeError
+			raise StartTimeError()
 		t_stop = dateutil.parser.parse(stopTime)
 		if t_stop < first_timestamp:
-			raise StopTimeError
+			raise StopTimeError()
 		if t_start > t_stop:
-			raise StartTimeError
+			raise StartTimeError()
 
 		# Check if cell_id exists
 		cell_count = session.query(Packet.cell_id).filter(Packet.cell_id == cell_id).count()
 		if cell_count == 0:
-			raise CellIDError
+			raise CellIDError()
 
 		l = []
 		for packet in session.query(Packet).filter(and_(Packet.cell_id == cell_id, Packet.timestamp.between(startTime, stopTime))).order_by(Packet.timestamp):
