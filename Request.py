@@ -55,7 +55,8 @@ class Request:
         except Exception as e:
             # Return xml-error for any other error :)
             return str(e) #self.fakeXMLError()
-
+        except:
+            return 'RUH-ROH!'
                 
     def fakeXMLError(self):
         return """
