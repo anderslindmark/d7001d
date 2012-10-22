@@ -74,7 +74,6 @@ lb.configure_health_check(hc)
 dnsName = lb.dns_name
 print("URL: " + dnsName)
 """
-
 #===============#
 #= Autoscaling =#
 #===============#
