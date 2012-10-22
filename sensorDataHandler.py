@@ -99,7 +99,7 @@ def make_sure_path_exists(path):
 
 if __name__ == "__main__":
 
-    make_sure_path_exists('home/ubuntu/logs/')
+    make_sure_path_exists('/home/ubuntu/logs/')
     logging.basicConfig(filename='home/ubuntu/logs/sensorDataHandler.log', level=logging.DEBUG)
 
     PORT = 9999

@@ -49,7 +49,7 @@ hc = HealthCheck(
     unhealthy_threshold = 5, 
     target = 'TCP:' + str(INSTANCE_PORT))
 
-"""
+
 # If there already exists a loadbalancer, use it
 try:
     lb_list = lb_connection.get_all_load_balancers(load_balancer_names=[LOAD_BALANCER])
@@ -72,7 +72,7 @@ lb.configure_health_check(hc)
 
 dnsName = lb.dns_name
 print("URL: " + dnsName)
-
+"""
 
 #===============#
 #= Autoscaling =#
