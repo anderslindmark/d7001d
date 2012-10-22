@@ -90,6 +90,7 @@ class Packet(Base):
 		files = []
 		for packet in packets:
 			filename = tempdir + '/' + str(i)
+			i += 1
 			f = open(filename, 'wb')
 			f.write(packet.raw_data)
 			f.close()

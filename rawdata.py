@@ -39,7 +39,7 @@ def getAvgSpeed(path, files):
 	numfiles = len(files)
 	cmd = CMD_BASE + "-f speed -n " + str(numfiles) + " "
 	for file in files:
-		cmd += path + "/" + file + " "
+		cmd += file + " "
 	
 	print "(DEBUG rawdata.py:getAvgSpeed) cmd: ", cmd
 
