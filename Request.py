@@ -154,9 +154,14 @@ class Request:
                 eMax = ET.SubElement(eCar, 'MaxSpeed')
                 eAvg = ET.SubElement(eCar, 'AverageSpeed')
                 
+                speeds = None
+                    
                 if (len(relevantPackets) > 1):
                     path, filelist = sql.Packet.writeFiles(relevantPackets)
-                    min, max, avg = rawdata.getAvgSpeed(path, filelist)
+                    speeds = rawdata.getAvgSpeed(path, filelist)
+
+                if speeds is not None:
+                    min, max, avg = speeds
                     eMin.text = str(min)
                     eMax.text = str(max)
                     eAvg.text = str(avg)
