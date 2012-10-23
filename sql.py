@@ -99,8 +99,14 @@ class Packet(Base):
 		global last_timestamp
 		global session
 
-		startTime = Packet._fixTimes(startTime)
-		stopTime = Packet._fixTimes(stopTime)
+		try:
+			startTime = Packet._fixTimes(startTime)
+		except:
+			raise StartTimeError()
+		try:
+			stopTime = Packet._fixTimes(stopTime)
+		except:
+			raise StopTimeError()
 
 		# Check start and stop times
 		t_start = dateutil.parser.parse(startTime)
