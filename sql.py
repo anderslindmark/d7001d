@@ -29,6 +29,7 @@ class Packet(Base):
 	def __init__(self, cell_id, node_id, road_side, timestamp, raw_data_size, raw_data, commit=True):
 		global first_timestamp
 		global last_timestamp
+		global session
 
 		self.cell_id = cell_id
 		self.node_id = node_id
@@ -38,7 +39,6 @@ class Packet(Base):
 		self.timestamp = t.strftime("%Y-%m-%d %H:%M:%S")
 		self.raw_data_size = raw_data_size
 		self.raw_data = raw_data
-		#self.cartype = rawdata.getCarType(raw_data)
 		self.cartype = None
 
 		if commit:
@@ -56,10 +56,18 @@ class Packet(Base):
 		return "<Packet('%d', '%d', '%s', '*DATA*', '%s', '%s')>" % (self.cell_id, self.node_id, self.timestamp, self.raw_data_size, self.cartype)
 
 	def getCarType(self):
+		global session
 		if self.cartype is None:
-			self.cartype = rawdata.getCarType(self.raw_data)
-			session.add(self)
-			session.commit()
+			cartype = rawdata.getCarType(self.raw_data)
+			if cartype is None:
+				# Delete packet from db
+				print "Corrupt packet, deleting from DB"
+				session.delete(self)
+				return None
+			else:
+				self.cartype = cartype
+				session.add(self)
+				session.commit()
 		return self.cartype
 
 	@staticmethod
@@ -86,6 +94,7 @@ class Packet(Base):
 	def fetchInterval(cell_id, startTime, stopTime):
 		global first_timestamp
 		global last_timestamp
+		global session
 
 		startTime = Packet._fixTimes(startTime)
 		stopTime = Packet._fixTimes(stopTime)
@@ -126,6 +135,7 @@ class Packet(Base):
 
 	@staticmethod
 	def listAllCells():
+		global session
 		ids = set()
 		result = session.query(Packet.cell_id).all()
 		for row in result:
@@ -134,6 +144,7 @@ class Packet(Base):
 
 	@staticmethod
 	def getLastPacketCellID():
+		global session
 		last = session.query(Packet.cell_id).filter(Packet.timestamp == last_timestamp).one()
 		return last.cell_id
 
