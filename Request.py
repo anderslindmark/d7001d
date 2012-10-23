@@ -7,6 +7,8 @@ import error
 
 class Request:
     
+    NUM_CAR_TYPES = 12
+    
     def __init__(self, reqString):
         
         root = None
@@ -139,17 +141,16 @@ class Request:
         packets = sql.Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
         
         dirMap = { 0:'A', 1:'B' }
-        carMap = { 1:'A', 2:'B', 3:'C', 4:'D', 5:'E', 6:'F' }
-        
+
         for dirKey in dirMap:
             eDir = ET.SubElement(eCell, 'DirectionCellID' + dirMap[dirKey])
-            for carKey in carMap:
+            for carKey in range(1, NUM_CAR_TYPES + 1):
                 relevantPackets = []
                 for p in packets:
                     if int(p.getCarType()) == carKey and int(p.road_side) == dirKey:
                         relevantPackets.append(p)
                 
-                eCar = ET.SubElement(eDir, 'CarType' + carMap[carKey])
+                eCar = ET.SubElement(eDir, 'CarType' + chr(65 + carKey))
                 eMin = ET.SubElement(eCar, 'MinSpeed')
                 eMax = ET.SubElement(eCar, 'MaxSpeed')
                 eAvg = ET.SubElement(eCar, 'AverageSpeed')
@@ -264,17 +265,16 @@ class Request:
         
         eFirst = ET.SubElement(eCell, 'FirstCar')
         eLast = ET.SubElement(eCell, 'LastCar')
-        
-        # map(chr, range(65, 65 + numCarTypes)) -> ['A', 'B', 'C', ...]
-        carMap = { 1:'A', 2:'B', 3:'C', 4:'D', 5:'E', 6:'F' }
-        
+
         if len(packets) == 0:
             # Leave the fields empty if there are no cars in the db
             pass
         elif len(packets) == 1:
             # Only compute car type once if firstCar == lastCar,
             # (this saves time if the car type is not already computed)
-            carType = carMap[int(packets[0].getCarType())]
+            
+            carTypeInt = int(packets[0].getCarType())
+            carType = chr(65 + carTypeInt)
             timeStamp = str(packets[0].timestamp)
             
             eCar = ET.SubElement(eFirst, 'CarType')
@@ -292,12 +292,12 @@ class Request:
             lastCarPacket = packets[len(packets) - 1]
             
             eCar = ET.SubElement(eFirst, 'CarType')
-            eCar.text = carMap[int(firstCarPacket.getCarType())]
+            eCar.text = chr(65 + int(firstCarPacket.getCarType()))
             eTime = ET.SubElement(eFirst, 'TimeStamp')
             eTime.text = str(firstCarPacket.timestamp)
             
             eCar = ET.SubElement(eLast, 'CarType')
-            eCar.text = carMap[int(lastCarPacket.getCarType())]
+            eCar.text = chr(65 + int(lastCarPacket.getCarType()))
             eTime = ET.SubElement(eLast, 'TimeStamp')
             eTime.text = str(lastCarPacket.timestamp)
         
