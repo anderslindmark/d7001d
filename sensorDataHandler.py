@@ -5,7 +5,10 @@ import sql
 import logging
 import os
 import errno
+import time
 
+from error import DataReadTimeoutException
+from datetime import datetime
 from struct import unpack
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -34,6 +37,9 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             road_side = self.receive_bytes(1)
             timestamp = self.receive_bytes(8)
             size = self.receive_bytes(4)
+		except DataReadTimeoutException:
+			print "Error receiving message (timeout)"
+			return
         except:
             print "Error receiving message"
             logging.exception("Error receiving message");
@@ -67,13 +73,21 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
     
     def receive_bytes(self, size):
         """Receive exactly the specified number of bytes."""
+		time_start = datetime.now()
         total_data = ""
         last_read = ""
         while True:
-            last_read = self.request.recv(size)            
-            total_data += last_read
-            size -= len(last_read)
-            if size <= 0: break
+			last_read = self.request.recv(size)            
+			total_data += last_read
+			size -= len(last_read)
+			if size <= 0: 
+				break
+			else:
+				time.sleep(0.01)
+			time_now = datetime.now()
+			time_diff = time_now - time_start
+			if time_diff.seconds >= 5:
+				raise DataReadTimeoutException()
         return total_data
 
 
