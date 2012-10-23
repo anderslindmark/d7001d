@@ -31,10 +31,10 @@ class RequestHandler(threading.Thread):
 
     def run(self):
         while True:
-            message = inQueue.read()
+            message = inQueue.read(600)
             if message is not None:
-                inQueue.delete_message(message)
                 self.handleMessage(message)
+                inQueue.delete_message(message)
             #Sleep maybe?
             time.sleep(2)
 
@@ -55,9 +55,9 @@ if __name__ == "__main__":
     outQueue = conn.create_queue("12_LP1_SQS_D7001D_jimnys-8_frontend-out")
 
     # Start five threads with request handlers
-    for i in range(1, 6):
-        requestHandler = RequestHandler(inQueue, outQueue)
-        requestHandler.start()
+    # for i in range(1, 6):
+    requestHandler = RequestHandler(inQueue, outQueue)
+    requestHandler.start()
     
     
 
