@@ -70,6 +70,9 @@ class Packet(Base):
 				session.commit()
 		return self.cartype
 
+	def getTimestamp(self):
+		return self.timestamp.strftime("%Y%m%d%H%M")
+
 	@staticmethod
 	def _fixTimes(time):
 		"""
