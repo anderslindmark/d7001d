@@ -275,7 +275,7 @@ class Request:
             
             carTypeInt = int(packets[0].getCarType())
             carType = chr(65 + carTypeInt)
-            timeStamp = str(packets[0].timestamp)
+            timeStamp = str(packets[0].getTimestamp())
             
             eCar = ET.SubElement(eFirst, 'CarType')
             eCar.text = carType
@@ -294,12 +294,12 @@ class Request:
             eCar = ET.SubElement(eFirst, 'CarType')
             eCar.text = chr(65 + int(firstCarPacket.getCarType()))
             eTime = ET.SubElement(eFirst, 'TimeStamp')
-            eTime.text = str(firstCarPacket.timestamp)
+            eTime.text = str(firstCarPacket.getTimestamp())
             
             eCar = ET.SubElement(eLast, 'CarType')
             eCar.text = chr(65 + int(lastCarPacket.getCarType()))
             eTime = ET.SubElement(eLast, 'TimeStamp')
-            eTime.text = str(lastCarPacket.timestamp)
+            eTime.text = str(lastCarPacket.getTimestamp())
         
         eTotalCar = ET.SubElement(eCell, 'TotalCar')
         eTotalCar.text = str(len(packets))

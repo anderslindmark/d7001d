@@ -22,7 +22,7 @@ class RequestHandler(threading.Thread):
         #print reply
         
         # Write to S3
-        url = S3.uploadFile(request.id, reply)
+        url = S3.uploadFile(request.id + '.xml', reply)
         
         #print url
         m = Message()
@@ -33,8 +33,13 @@ class RequestHandler(threading.Thread):
         while True:
             message = inQueue.read(600)
             if message is not None:
-                self.handleMessage(message)
-                inQueue.delete_message(message)
+                try:
+                    self.handleMessage(message)
+                    inQueue.delete_message(message)
+                except:
+                    pass
+                    # Do nothing here, just try another message from the queue
+                    # TODO Delete message from the queue? And maybe the corrupt packet from the db
             #Sleep maybe?
             time.sleep(2)
 
