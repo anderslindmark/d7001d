@@ -5,9 +5,9 @@ import rawdata
 import sql
 import error
 
+NUM_CAR_TYPES = 12
+
 class Request:
-    
-    NUM_CAR_TYPES = 12
     
     def __init__(self, reqString):
         
