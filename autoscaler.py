@@ -11,16 +11,6 @@ from boto.ec2.autoscale import Tag
 #=============#
 #= Constants =#
 #=============#
-"""
-SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
-AMI = 'ami-6995951d'
-KEY = '12_LP1_KEY_D7001D_nicnys-8'
-AUTOSCALING_GROUP = 'nicnys-8-sensorServer-as'
-LAUNCH_CONFIGURATION = 'nicnys-8-sensorServer-lc'
-LOAD_BALANCER = 'nicnys-8-sensorServer-lb'
-REGION = 'eu-west-1'
-AVAILABILITY_ZONES = ['eu-west-1b']
-"""
 
 SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
 AMI = 'ami-6995951d'
@@ -102,7 +92,7 @@ if (my_groups == []):
     load_balancers = [LOAD_BALANCER],
     availability_zones = AVAILABILITY_ZONES,
     launch_config = lc,
-    min_size = 1, max_size = 2,
+    min_size = 2, max_size = 4,
     connection = as_connection)
 
     as_connection.create_auto_scaling_group(ag)
@@ -149,24 +139,24 @@ cloudwatch = boto.ec2.cloudwatch.connect_to_region(REGION)
 alarm_dimensions = {"AutoScalingGroupName": AUTOSCALING_GROUP}
 
 # Create a new instance if the existing cluster
-# averages more than 70% CPU for two minutes
+# averages more than 60% CPU for one minute
 scale_up_alarm = MetricAlarm(
     name = 'scale_up_on_cpu', namespace= ' AWS/EC2',
     metric = 'CPUUtilization', statistic = 'Average',
-    comparison = '>', threshold = '70',
-    period = '60', evaluation_periods = 2,
+    comparison = '>', threshold = '60',
+    period = '60', evaluation_periods = 1,
     alarm_actions = [scale_up_policy.policy_arn],
     dimensions = alarm_dimensions)
 
 cloudwatch.create_alarm(scale_up_alarm)
 
 # Terminate an instance if the existing cluster
-# averages less than 40% CPU for two minutes
+# averages less than 10% CPU for two minutes
 scale_down_alarm = MetricAlarm(
     name='scale_down_on_cpu', namespace='AWS/EC2',
     metric='CPUUtilization', statistic='Average',
-    comparison='<', threshold='40',
-    period='60', evaluation_periods = 2,
+    comparison='<', threshold='10',
+    period='60', evaluation_periods = 1,
     alarm_actions=[scale_down_policy.policy_arn],
     dimensions=alarm_dimensions)
 
