@@ -26,7 +26,9 @@ while True:
 		# Check if cartype has been added since the packet was enqueued
 		if packet.cartype is None:
 			# Calculate cartype
-			packet.getCarType()
-			session.add(packet)
-			session.commit()
+			ctype = packet.getCarType()
+			# if ctype is none that means the data was corrupt and the packet was deleted from db
+			if ctype is not None:
+				session.add(packet)
+				session.commit()
 		delMsg(msg)
