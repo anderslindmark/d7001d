@@ -11,8 +11,7 @@ from boto.ec2.cloudwatch import MetricAlarm
 from boto.ec2.autoscale import Tag
 from datetime import datetime
 
-# PREDETERMINED VALUES
-
+# Constants
 region = 'eu-west-1'
 zones = ['eu-west-1a', 'eu-west-1b']
 image_id = 'ami-6995951d'
@@ -22,8 +21,7 @@ lc_name     = 'nicnys-8-sensorDataHandler-lc'
 asg_name    = 'nicnys-8-sensorDataHandler-as'
 sec_group   = '12_LP1_SEC_D7001D_nicnys-8'
 instance_name = 'nicnys-8-sensorDataHandler-ec2'
-security_group = '12_LP1_SEC_D7001D_nicnys-8'
-load_balancer = 'nicnys-8-sensorDataHandler-lb'
+lb_name = 'nicnys-8-sensorDataHandler-lb'
 
 instance_port = 9999
 load_balancer_port = 12345
@@ -45,19 +43,12 @@ def launchLoadBalancing():
             unhealthy_threshold = 5, 
             target = 'TCP:' + str(instance_port))
 
-        # If there already exists a loadbalancer, use it
+        # Try to create a loadbalancer
         try:
-            lb_list = connection.get_all_load_balancers(
-                    load_balancer_names=[load_balancer])
-            
-            lb = lb_list[0]
-
-        # Otherwise, create a new one
-        except:
-            # Listen to traffic on port 9999, forward to port 9999 on the instances
             ports = [(load_balancer_port, instance_port, 'tcp')]
-            lb = connection.create_load_balancer(
-                    load_balancer, zones, ports)
+            connection.create_load_balancer(lb_name, zones, ports)
+        except Exception:            
+            print "Load balancer probably already exists."
 
 
 def launchAutoScale():
@@ -69,7 +60,7 @@ def launchAutoScale():
         name=lc_name, 
         image_id=image_id,
         key_name=key_name,
-                security_groups = [security_group])
+                security_groups = [sec_group])
 
     connection.create_launch_configuration(lc)
     print 'Done. LaunchConfiguration created.'
@@ -77,7 +68,7 @@ def launchAutoScale():
     print 'Creating AutoScalingGroup: ' + asg_name
     asg = AutoScalingGroup(
         group_name=asg_name,
-                load_balancers = [load_balancer],
+        load_balancers=[lb_name],
         availability_zones=zones,
         launch_config=lc, 
         min_size=min_instances, 
@@ -97,7 +88,7 @@ def launchAutoScale():
     connection.create_or_update_tags([name_tag, course_tag, user_tag])
     print "Done. Tags added."
 
-    # Set local scale properties.
+    # Create scaling policies which tell us *how* to scale
     print 'Creating scale up/down policy'
     scale_up_policy = ScalingPolicy(
         name='scale_up', 
@@ -118,17 +109,23 @@ def launchAutoScale():
     connection.create_scaling_policy(scale_down_policy)
     print 'Done. Scaling policies created.'
 
-    # Get extra properties from AWS.
+    # The polices now have extra properties that aren't
+    # accessible locally. Refresh the policies by requesting
+    # them back again.
     scale_up_policy = connection.get_all_policies(as_group=asg_name, policy_names=['scale_up'])[0]
     scale_down_policy = connection.get_all_policies(as_group=asg_name, policy_names=['scale_down'])[0]
 
+    # Create cloudwatch alarms which tell us *when* to scale
     print 'Setting up alarms...'
     cloudwatch = boto.ec2.cloudwatch.connect_to_region(region_name=region)
 
     alarm_dimensions = {"AutoScalingGroupName": autoscaling_group}
     print 'ScaleUpAlarm'
+
+    # Create a new instance if the existing cluster
+    # averages more than 40% CPU
     scale_up_alarm = MetricAlarm(
-            name='scale_up_on_cpu', 
+        name='scale_up_on_cpu', 
         namespace='AWS/EC2',
         metric='CPUUtilization', 
         statistic='Average',
@@ -141,9 +138,11 @@ def launchAutoScale():
 
     cloudwatch.create_alarm(scale_up_alarm)
 
+    # Terminate an instance if the existing cluster
+    # averages less than 10% CPU
     print 'ScaleDownAlarm'
     scale_down_alarm = MetricAlarm(
-            name='scale_down_on_cpu', 
+        name='scale_down_on_cpu', 
         namespace='AWS/EC2',
         metric='CPUUtilization', 
         statistic='Average',
@@ -158,36 +157,52 @@ def launchAutoScale():
     print 'Finished'
 
 def shutdown():
-    print 'Shutdown:'
-    connection = boto.ec2.autoscale.connect_to_region(region)
 
-    # scaling policies
+    # shut down load balancing 
+    print 'Shutting down load balancing:'
+
+    lb_connection = boto.ec2.elb.connect_to_region(region)
     try:
-        policies = connection.get_all_policies(as_group=asg_name)
+        lb_list = lb_connection.get_all_load_balancers(
+                    load_balancer_names=[lb_name])
+        lb = lb_list[0]
+        lb.delete()
+    except Exception:
+        print 'Load balancer ' + lb_name + ' doesn\'t exist'
+
+    print 'Shutdown complete.'
+
+    # delete scaling policies
+    print 'Shutting down autoscaling:'
+    
+    as_connection = boto.ec2.autoscale.connect_to_region(region)
+
+    try:
+        policies = as_connection.get_all_policies(as_group=asg_name)
         for p in policies:
             print 'Deleting policy.'
             p.delete
     except Exception:
         print 'AutoScalingGroup ' + asg_name + ' doesn\'t exist.'
 
-    # autoscaling group
+    # delete autoscaling group
     
     try:
-        asg = connection.get_all_groups(names=[asg_name])[0]
+        asg = as_connection.get_all_groups(names=[asg_name])[0]
         print 'Deleting AutoScalingGroup: ' + asg_name
         asg.delete(force_delete=True)
     except Exception:
         print 'AutoScalingGroup ' + asg_name + ' doesn\'t exist.'
 
-    # launch configuration
+    # delete launch configuration
     try:
-        lc = connection.get_all_launch_configurations(names=[lc_name])[0]
+        lc = as_connection.get_all_launch_configurations(names=[lc_name])[0]
         print 'Deleting launch configuration: ' + lc_name
         lc.delete()
     except Exception:
         print 'LaunchConfiguration ' + lc_name + ' doesn\'t exist.'
 
-    # cloudwatch alarms
+    # delete cloudwatch alarms
     try:
         cloudwatch = boto.ec2.cloudwatch.connect_to_region(region_name=region)
         cloudwatch.delete_alarms([alarm_up_name, alarm_down_name])
@@ -196,6 +211,7 @@ def shutdown():
         print 'CloudWatchAlarms doesn\'t exist'
 
     print 'Shutdown complete.'
+
 
 if __name__ == "__main__":
     if len(argv) == 1:
