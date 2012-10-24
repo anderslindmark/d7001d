@@ -17,7 +17,12 @@ while True:
 			delMsg(msg)
 			continue
 		# Get that packet from the database
-		packet = session.query(Packet).filter(Packet.id == packet_id).one()
+		try:
+			packet = session.query(Packet).filter(Packet.id == packet_id).one()
+		except:
+			# Packet has been removed from db since it was added to the queue
+			delMsg(msg)
+			continue
 		# Check if cartype has been added since the packet was enqueued
 		if packet.cartype is None:
 			# Calculate cartype

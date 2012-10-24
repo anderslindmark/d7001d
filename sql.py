@@ -27,8 +27,6 @@ class Packet(Base):
 	raw_data_size = Column(Integer)
 
 	def __init__(self, cell_id, node_id, road_side, timestamp, raw_data_size, raw_data, commit=True):
-		global first_timestamp
-		global last_timestamp
 		global session
 
 		self.cell_id = cell_id
@@ -43,10 +41,6 @@ class Packet(Base):
 
 		if commit:
 			# Commit right away so that p.id is available and can be placed onto queue
-			if t < first_timestamp:
-				first_timestamp = t
-			if t > last_timestamp:
-				last_timestamp = t
 			session.add(self)
 			session.commit()
 			enQueue(self.id)
@@ -95,8 +89,6 @@ class Packet(Base):
 
 	@staticmethod
 	def fetchInterval(cell_id, startTime, stopTime):
-		global first_timestamp
-		global last_timestamp
 		global session
 
 		try:
@@ -110,11 +102,7 @@ class Packet(Base):
 
 		# Check start and stop times
 		t_start = dateutil.parser.parse(startTime)
-		if t_start > last_timestamp:
-			raise StartTimeError()
 		t_stop = dateutil.parser.parse(stopTime)
-		if t_stop < first_timestamp:
-			raise StopTimeError()
 		if t_start > t_stop:
 			raise StartTimeError()
 
@@ -157,8 +145,18 @@ class Packet(Base):
 		last = session.query(Packet.cell_id).filter(Packet.timestamp == last_timestamp).one()
 		return last.cell_id
 
-# To create the table; first drop existing table if any and then
-#  Packet.metadata.create_all(engine)
+# To create the table; first drop existing table using:
+#    Packet.metadata.drop_all(engine)
+# and and then create it with:
+#    Packet.metadata.create_all(engine)
+
+def wipeDatabase():
+	plist = session.query(Packet).all()
+	for packet in plist:
+		session.delete(packet)
+	session.commit()
+	Packet.metadata.drop_all(engine)
+	Packet.metadata.create_all(engine)
 
 ENGINE_STRING = "mysql://" + aws_common.DB_USER + ':' + aws_common.DB_PASSWORD + '@' + aws_common.DB_ADDRESS + '/' + aws_common.DB_DATABASE
 
@@ -166,11 +164,6 @@ engine = create_engine(ENGINE_STRING, echo=DB_DEBUG)
 
 Session = sessionmaker(bind=engine)
 session = Session()
-
-timestamps = session.query(Packet.timestamp).order_by(Packet.timestamp).all()
-first_timestamp = timestamps[0].timestamp
-last_timestamp = timestamps[-1].timestamp
-
 
 if __name__ == "__main__":
 	pass

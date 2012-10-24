@@ -26,3 +26,6 @@ def deQueue():
 
 def delMsg(msg):
 	sqs_connection.delete_message(q, msg)
+
+def wipeQueue():
+	q.clear()
