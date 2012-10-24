@@ -150,6 +150,14 @@ class Packet(Base):
 # and and then create it with:
 #    Packet.metadata.create_all(engine)
 
+def wipeDatabase():
+	plist = session.query(Packet).all()
+	for packet in plist:
+		session.delete(packet)
+	session.commit()
+	Packet.metadata.drop_all(engine)
+	Packet.metadata.create_all(engine)
+
 ENGINE_STRING = "mysql://" + aws_common.DB_USER + ':' + aws_common.DB_PASSWORD + '@' + aws_common.DB_ADDRESS + '/' + aws_common.DB_DATABASE
 
 engine = create_engine(ENGINE_STRING, echo=DB_DEBUG)
