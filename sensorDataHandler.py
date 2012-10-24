@@ -76,7 +76,7 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             return
 
         # Check that all values are correct
-        if (road_side != 0) && (road_side != 1):
+        if road_side != 0 and road_side != 1:
             print "Invalid road side value"
             logging.exception("Invalid road side value")
             self.request.close()
