@@ -15,6 +15,10 @@ DB_DEBUG = True
 
 Base = declarative_base()
 class Packet(Base):
+	"""
+	This class contains the database mapping for a 'packet' from the sensor data group 
+	and helper methods for dealing with that data.
+	"""
 	__tablename__ = "packets"
 
 	id = Column(Integer, primary_key=True)
@@ -27,6 +31,9 @@ class Packet(Base):
 	raw_data_size = Column(Integer)
 
 	def __init__(self, cell_id, node_id, road_side, timestamp, raw_data_size, raw_data, commit=True):
+		"""
+		Create a packet, if commit is true (default) then the packet is added to the database automatically
+		"""
 		global session
 
 		self.cell_id = cell_id
@@ -50,6 +57,9 @@ class Packet(Base):
 		return "<Packet('%d', '%d', '%s', '*DATA*', '%s', '%s')>" % (self.cell_id, self.node_id, self.timestamp, self.raw_data_size, self.cartype)
 
 	def getCarType(self):
+		"""
+		Returns the cartype. If cartype has not yet been calculated it will be done, which can take a while.
+		"""
 		global session
 		if self.cartype is None:
 			cartype = rawdata.getCarType(self.raw_data)
@@ -65,6 +75,9 @@ class Packet(Base):
 		return self.cartype
 
 	def getTimestamp(self):
+		"""
+		Return the timestamp in an XML-friendly fashion.
+		"""
 		return self.timestamp.strftime("%Y%m%d%H%M")
 
 	@staticmethod
@@ -89,6 +102,12 @@ class Packet(Base):
 
 	@staticmethod
 	def fetchInterval(cell_id, startTime, stopTime):
+		"""
+		Return all packets in cell cell_id between startTime and stopTime.
+		Will raise startTime or stopTime are malformed it will raise StartTimeError or StopTimeError
+		If startTime is after stopTime it will raise StartTimeError
+		If there is not a cell with the specified cell_id it will raise CellIDError
+		"""
 		global session
 
 		try:
@@ -118,6 +137,10 @@ class Packet(Base):
 
 	@staticmethod
 	def writeFiles(packets):
+		"""
+		Takes a list of packets and writes the data from each packet to a file.
+		Returns a tuple consisting of the directory containing the files and a list of filenames.
+		"""
 		tempdir = mkdtemp()
 		i = 0
 		files = []
@@ -132,6 +155,9 @@ class Packet(Base):
 
 	@staticmethod
 	def listAllCells():
+		"""
+		Returns a set with all cell_id's.
+		"""
 		global session
 		ids = set()
 		result = session.query(Packet.cell_id).all()
@@ -139,18 +165,15 @@ class Packet(Base):
 			ids.add(row.cell_id)
 		return ids
 
-	@staticmethod
-	def getLastPacketCellID():
-		global session
-		last = session.query(Packet.cell_id).filter(Packet.timestamp == last_timestamp).one()
-		return last.cell_id
-
 # To create the table; first drop existing table using:
 #    Packet.metadata.drop_all(engine)
 # and and then create it with:
 #    Packet.metadata.create_all(engine)
 
 def wipeDatabase():
+	"""
+	Removes all packets from the database, drops the database table and then creates the table again.
+	"""
 	plist = session.query(Packet).all()
 	for packet in plist:
 		session.delete(packet)
@@ -158,25 +181,22 @@ def wipeDatabase():
 	Packet.metadata.drop_all(engine)
 	Packet.metadata.create_all(engine)
 
+# String used for connecting to the database
 ENGINE_STRING = "mysql://" + aws_common.DB_USER + ':' + aws_common.DB_PASSWORD + '@' + aws_common.DB_ADDRESS + '/' + aws_common.DB_DATABASE
 
+# SQLAlchemy engine and session
 engine = create_engine(ENGINE_STRING, echo=DB_DEBUG)
-
 Session = sessionmaker(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
 	pass
 	#p = Packet(99, 99, 0, 1350555611626, 8, "rawdata2")
-	##session.add(p)
-	##session.commit()
 	
 	# Incoming packets from the Sensor Network
 	#  import sql
-	#  cell_id, node_id, timestamp, rawdata = recievePacket()
-	#  p = sql.Packet(cell_id, node_id, timestamp, rawdata)
-	#  sql.session.add(p)
-	#  sql.session.commit()
+	#  cell_id, node_id, road_side, timestamp, size, rawdata = recievePacket()
+	#  p = sql.Packet(cell_id, node_id, road_side, timestamp, size, rawdata)
 	# Done.
 
 	# Requests from the front-end
@@ -185,7 +205,7 @@ if __name__ == "__main__":
 	#  import S3
 	#  packets = Packet.fetchInterval(startTime, stopTime)
 	#  path, files = Packet.writeFiles(packets)
-	#  avgSpeed = rawdata.getAvgSpeed(path, files)
+	#  min, max, avgSpeed = rawdata.getAvgSpeed(path, files)
 	# Get XML strings etc
 	#  url = S3.uploadFile(filnamn, xmltext)
 	# Done.
