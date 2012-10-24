@@ -54,7 +54,7 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             size = self.receive_bytes(4)
 
         except DataReadTimeoutException:
-            print "Error receiving message (timeout)"
+            print "Connection timeout"
             return
         
         except:
@@ -71,7 +71,14 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             size = int(bytes_to_int(size))
         except:
             print "Faulty data format"
-            logging.exception("Faulty data format.");
+            logging.exception("Faulty data format.")
+            self.request.close()
+            return
+
+        # Check that all values are correct
+        if (road_side != 0) && (road_side != 1):
+            print "Invalid road side value"
+            logging.exception("Invalid road side value")
             self.request.close()
             return
 
@@ -80,7 +87,9 @@ class SensorDataHandler(SocketServer.BaseRequestHandler):
             raw_data = self.receive_bytes(size)
         except:
             print "Error receiving raw data"
-            logging.exception("Error receiving raw data");
+            logging.exception("Error receiving raw data")
+            self.request.close()
+            return
         
         # Add the data to the database
         #p = sql.Packet(cell_id, node_id, road_side, timestamp, size, raw_data)
