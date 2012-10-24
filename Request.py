@@ -1,9 +1,9 @@
 
 import xml.etree.ElementTree as ET
-
 import rawdata
 import sql
-import error
+from error import StartTimeError, StopTimeError, CellIDError, XMLError
+
 
 NUM_CAR_TYPES = 12
 
@@ -18,8 +18,7 @@ class Request:
             root = ET.fromstring(reqString)
             self.id = root.tag
         except Exception:
-            self.id = ''
-            #raise XMLError()
+            raise XMLError()
         
         try:
             self.type = root.find('RequestType').text
@@ -42,17 +41,17 @@ class Request:
             elif self.type == 'CellStatNet':
                 xmlString = self.cellStatNetReply()
             else:
-                raise error.XMLError(self.id)
+                raise XMLError(self.id)
             
             return xmlString
         
-        except error.StartTimeError:
+        except StartTimeError:
             return self.fakeStartTimeError()
-        except error.StopTimeError:
+        except StopTimeError:
             return self.fakeStopTimeError()
-        except error.CellIDError:
+        except CellIDError:
             return self.fakeCellIDError()
-        except error.XMLError:
+        except XMLError:
             return self.fakeXMLError()
         #except Exception as e:
             # Return xml-error for any other error :)

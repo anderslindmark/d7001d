@@ -6,6 +6,7 @@ from boto.sqs.message import Message
 from boto.sqs.connection import SQSConnection
 import aws_common
 from boto.sqs import regions
+from error import XMLError
 
 class RequestHandler(threading.Thread):
 
@@ -16,7 +17,12 @@ class RequestHandler(threading.Thread):
     
     def handleMessage(self, message):
         body = message.get_body()
-        request = Request.Request(body)
+        
+        try:
+            request = Request.Request(body)
+        except XMLError:
+            return
+        
         reply = request.process()
         
         #print reply

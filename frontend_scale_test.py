@@ -26,13 +26,13 @@ if __name__ == "__main__":
 
     types = ['ListCells', 'CellStatNet', 'CellStatSpeed']
 
-    for i in range(0, 100):
+    for i in range(0, 200):
         
         root = ET.Element('RequestID' + str(5 + i))
         eType = ET.SubElement(root, 'RequestType')
         eType.text = types[i % len(types)]
         eId = ET.SubElement(root, 'CellID')
-        eId.text = str(i % 11) # Existing cell ids = [0, 10]
+        eId.text = str(i % 6)
         eStart = ET.SubElement(root, 'TimeStart')
         eStart.text = '201201011200'
         eStop = ET.SubElement(root, 'TimeStop')
