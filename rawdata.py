@@ -4,10 +4,11 @@ import shlex
 import subprocess
 
 CMD_BASE = "/home/ubuntu/process64/process64 "
-CMD_TYPE = "-f type"
-CMD_SPEED = "-f speed"
 
 def getCarType(raw_data):
+	"""
+	Use process64 to calculate cartype using the raw_data field of a packet.
+	"""
 	_, tmpfile = mkstemp()
 	file = open(tmpfile, 'wb')	
 	file.write(raw_data)
@@ -30,6 +31,10 @@ def getCarType(raw_data):
 		return None
 
 def getAvgSpeed(path, files):
+	"""
+	Takes a set of files containing raw data and process them using process64.
+	Cleans up the files afterwards.
+	"""
 	numfiles = len(files)
 	cmd = CMD_BASE + "-f speed -n " + str(numfiles) + " "
 	for file in files:

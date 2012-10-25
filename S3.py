@@ -10,6 +10,10 @@ import sys
 
 # Creates a file in the bucket, returns a url
 def uploadFile(filename, content):
+	"""
+	Create a file called 'filename' containing 'content' on the S3-bucket.
+	Returns a url to the file.
+	"""
 	object = Key(bucket)
 	object.key = aws_common.S3_RESPONSE_PREFIX + filename
 	object.set_contents_from_string(content)
@@ -20,6 +24,9 @@ def uploadFile(filename, content):
 
 # Add a lifecycle-rule for automatic deletion
 def setDeletionPolicy(bucket):
+	"""
+	Creates a lifecycle policy that automatically deletes all the files in the subfolder after one day.
+	"""
 	lifecycle = Lifecycle()
 	lifecycle.add_rule("Audo-delete objects in %s after 1 day" % aws_common.S3_RESPONSE_PREFIX, aws_common.S3_RESPONSE_PREFIX, "Enabled", 1)
 	print "Added deletion policy"
@@ -27,6 +34,9 @@ def setDeletionPolicy(bucket):
 
 # Creates the bucket
 def createBucket(bucketname):
+	"""
+	Creates the S3-bucket
+	"""
 	try:
 		bucket = connection.create_bucket(bucketname, location=aws_common.S3_LOCATION)
 		print "Bucket created"
@@ -48,5 +58,5 @@ except S3ResponseError:
 		sys.exit()
 
 if __name__ == "__main__":
-	print "Helloes"
+	pass
 
