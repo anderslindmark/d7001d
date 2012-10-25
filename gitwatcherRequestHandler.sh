@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This script checks if there are any changes in git upstream
+# If any changes are available it will merge them and restart the service
+
 # Put:
 #   */5 * * * * /path/to/gitwatcherRequestHandler.sh
 # in crontab to check every five minutes
