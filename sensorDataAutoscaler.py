@@ -1,147 +1,183 @@
-from sys import argv, exit
 import boto.ec2.elb
-import boto.ec2.autoscale
-import time
-
 from boto.ec2.elb import HealthCheck
+
+from boto.ec2.autoscale import AutoScaleConnection
 from boto.ec2.autoscale import LaunchConfiguration
 from boto.ec2.autoscale import AutoScalingGroup
 from boto.ec2.autoscale import ScalingPolicy
 from boto.ec2.cloudwatch import MetricAlarm
 from boto.ec2.autoscale import Tag
-from datetime import datetime
 
-# Constants
-region = 'eu-west-1'
-zones = ['eu-west-1a', 'eu-west-1b']
-image_id = 'ami-6995951d'
-autoscaling_group = 'nicnys-8-sensorDataHandler-as'
-key_name = '12_LP1_KEY_D7001D_nicnys-8'
-lc_name     = 'nicnys-8-sensorDataHandler-lc'
-asg_name    = 'nicnys-8-sensorDataHandler-as'
-sec_group   = '12_LP1_SEC_D7001D_nicnys-8'
-instance_name = 'nicnys-8-sensorDataHandler-ec2'
-lb_name = 'nicnys-8-sensorDataHandler-lb'
+#=============#
+#= Constants =#
+#=============#
 
-instance_port = 9999
-load_balancer_port = 12345
+SECURITY_GROUP = '12_LP1_SEC_D7001D_nicnys-8'
+AMI = 'ami-6995951d'
+KEY = '12_LP1_KEY_D7001D_nicnys-8'
+AUTOSCALING_GROUP = 'nicnys-8-sensorDataHandler-as'
+INSTANCE_NAME = 'nicnys-8-sensorDataHandler-ec2'
+LAUNCH_CONFIGURATION = 'nicnys-8-sensorDataHandler-lc'
+LOAD_BALANCER = 'nicnys-8-sensorDataHandler-lb'
+REGION = 'eu-west-1'
+AVAILABILITY_ZONES = ['eu-west-1b']
 
-min_instances = 2
-max_instances = 5
+INSTANCE_PORT = 9999
+LOAD_BALANCER_PORT = 12345
+
+#=======================#
+#== Load balancinging ==#
+#=======================#
+
+lb_connection = boto.ec2.elb.connect_to_region(REGION)
+
+# Periodically check that TCP connections can be made to all instanes
+hc = HealthCheck(
+    # Seconds between each check:
+    interval = 20,
+    # Consecutive failed checks before an instance is deemed dead:
+    healthy_threshold = 3,
+    # Seconds the loadbalancer will wait for a check:
+    unhealthy_threshold = 5, 
+    target = 'TCP:' + str(INSTANCE_PORT))
+
+# If there already exists a loadbalancer, use it
+try:
+    lb_list = lb_connection.get_all_load_balancers(load_balancer_names=[LOAD_BALANCER])
+    lb = lb_list[0]
+
+# Otherwise, create a new one
+except:
+
+    # Listen to traffic on port 9999, forward to port 9999 on the instances
+    ports = [(LOAD_BALANCER_PORT, INSTANCE_PORT, 'tcp')]
+    lb = lb_connection.create_load_balancer(LOAD_BALANCER, AVAILABILITY_ZONES, ports)
+
+"""
+
+# We assume that the loadbalancer already exists
+lb_list = lb_connection.get_all_load_balancers(load_balancer_names=[LOAD_BALANCER])
+lb = lb_list[0]
+
+lb.configure_health_check(hc)
+
+dnsName = lb.dns_name
+print("URL: " + dnsName)
+"""
+#=================#
+#== Autoscaling ==#
+#=================#
+
+#========#
+#= Tags =#
+#========#
+
+as_connection = boto.ec2.autoscale.connect_to_region(REGION)
+
+# create a tag for the austoscale group
+name_tag = Tag(key='Name', value = INSTANCE_NAME, propagate_at_launch=True, resource_id=AUTOSCALING_GROUP)
+course_tag = Tag(key='course', value = 'D7001D', propagate_at_launch=True, resource_id=AUTOSCALING_GROUP)
+user_tag = Tag(key='user', value = 'nicnys-8', propagate_at_launch=True, resource_id=AUTOSCALING_GROUP)
+
+# Add the tag to the autoscale group
+as_connection.create_or_update_tags([name_tag, course_tag, user_tag])
+
+# If there is no launch configuration, create it
+configurations = as_connection.get_all_launch_configurations(names=[LAUNCH_CONFIGURATION])
+if (configurations == []):
+    lc=LaunchConfiguration(
+        name=LAUNCH_CONFIGURATION,
+        image_id=AMI,
+        key_name=KEY,
+        security_groups=[SECURITY_GROUP])
+
+    as_connection.create_launch_configuration(lc)
+    
+# Otherwise, use the existing one
+else:
+    lc = configurations[0]
+
+# Create a new autoscaling group if it doesn't already exist
+my_groups = as_connection.get_all_groups(names=[AUTOSCALING_GROUP])
+if (my_groups == []):
+    ag=AutoScalingGroup(
+    group_name=AUTOSCALING_GROUP,
+    load_balancers=[LOAD_BALANCER],
+    availability_zones=AVAILABILITY_ZONES,
+    launch_config=lc,
+    min_size=2,
+    max_size=4,
+    connection=as_connection)
+
+    as_connection.create_auto_scaling_group(ag)
+    
+else:
+    ag = my_groups[0]
+
+#====================#
+#= Scaling policies =#
+#====================#
+# The scaling policies tell us *how* to scale
+
+scale_up_policy = ScalingPolicy(
+    name='scale_up',
+    adjustment_type='ChangeInCapacity',
+    as_name=AUTOSCALING_GROUP,
+    scaling_adjustment=1,
+    cooldown=180)
+
+scale_down_policy = ScalingPolicy(
+    name='scale_down',
+    adjustment_type='ChangeInCapacity',
+    as_name=AUTOSCALING_GROUP,
+    scaling_adjustment=-1,
+    cooldown=180)
+
+# Submit policies to AWS
+as_connection.create_scaling_policy(scale_up_policy)
+as_connection.create_scaling_policy(scale_down_policy)
+
+# The polices now have extra properties that aren't
+# accessible locally. Refresh the policies by requesting
+# them back again.
+scale_up_policy = as_connection.get_all_policies(
+    as_group=AUTOSCALING_GROUP,
+    policy_names=['scale_up'])[0]
+
+scale_down_policy = as_connection.get_all_policies(
+    as_group=AUTOSCALING_GROUP,
+    policy_names=['scale_down'])[0]
 
 
-def launchLoadBalancing():
-        connection = boto.ec2.elb.connect_to_region(region)
-        
-        # Periodically check that TCP connections can be made to all instanes
-        hc = HealthCheck(
-            # Seconds between each check:
-            interval = 20,
-            # Consecutive failed checks before an instance is deemed dead:
-            healthy_threshold = 3,
-            # Seconds the loadbalancer will wait for a check:
-            unhealthy_threshold = 5, 
-            target = 'TCP:' + str(instance_port))
+#=====================#
+#= Cloudwatch alarms =#
+#=====================#
 
-        # Try to create a loadbalancer
-        try:
-            ports = [(load_balancer_port, instance_port, 'tcp')]
-            connection.create_load_balancer(lb_name, zones, ports)
-        except Exception:            
-            print "Load balancer probably already exists."
+#The cloudwatch alarms tell us *when* to scale
 
+cloudwatch = boto.ec2.cloudwatch.connect_to_region(REGION)
 
-def launchAutoScale():
-    print "Connecting to region: " + region
-    connection = boto.ec2.autoscale.connect_to_region(region)
+alarm_dimensions = {"AutoScalingGroupName": AUTOSCALING_GROUP}
 
-    print 'Creating launch configuration: ' + lc_name
-    lc = LaunchConfiguration(
-        name=lc_name, 
-        image_id=image_id,
-        key_name=key_name,
-                security_groups = [sec_group])
+# Create a new instance if the existing cluster
+# averages more than 60% CPU for one minute
+scale_up_alarm = MetricAlarm(
+    name='scale_up_on_cpu', 
+    namespace='AWS/EC2',
+    metric='CPUUtilization', 
+    statistic='Average',
+    comparison='>', 
+    threshold='40',
+    period='60', 
+    evaluation_periods=1,
+    alarm_actions=[scale_up_policy.policy_arn],
+    dimensions=alarm_dimensions)
 
-    connection.create_launch_configuration(lc)
-    print 'Done. LaunchConfiguration created.'
+cloudwatch.create_alarm(scale_up_alarm)
 
-    print 'Creating AutoScalingGroup: ' + asg_name
-    asg = AutoScalingGroup(
-        group_name=asg_name,
-        load_balancers=[lb_name],
-        availability_zones=zones,
-        launch_config=lc, 
-        min_size=min_instances, 
-        max_size=max_instances,
-        connection=connection)
-
-    connection.create_auto_scaling_group(asg)
-    print 'Done. AutoScalingGroup created.'
-
-    # create a tag for the austoscale group
-    print 'Creating tags for instances:'
-    name_tag = Tag(key='Name', value = instance_name, propagate_at_launch=True, resource_id=asg_name)
-    course_tag = Tag(key='Course', value = 'D7001D', propagate_at_launch=True, resource_id=asg_name)
-    user_tag = Tag(key='User', value = 'nicnys-8', propagate_at_launch=True, resource_id=asg_name)
-
-    # Add the tag to the autoscale group
-    connection.create_or_update_tags([name_tag, course_tag, user_tag])
-    print "Done. Tags added."
-
-    # Create scaling policies which tell us *how* to scale
-    print 'Creating scale up/down policy'
-    scale_up_policy = ScalingPolicy(
-        name='scale_up', 
-        adjustment_type='ChangeInCapacity',
-        as_name=asg_name, 
-        scaling_adjustment=1, 
-        cooldown=180)
-
-    scale_down_policy = ScalingPolicy(
-        name='scale_down',
-        adjustment_type='ChangeInCapacity',
-        as_name=asg_name, 
-        scaling_adjustment=-1, 
-        cooldown=180)
-
-    # Push them to AWS.
-    connection.create_scaling_policy(scale_up_policy)
-    connection.create_scaling_policy(scale_down_policy)
-    print 'Done. Scaling policies created.'
-
-    # The polices now have extra properties that aren't
-    # accessible locally. Refresh the policies by requesting
-    # them back again.
-    scale_up_policy = connection.get_all_policies(as_group=asg_name, policy_names=['scale_up'])[0]
-    scale_down_policy = connection.get_all_policies(as_group=asg_name, policy_names=['scale_down'])[0]
-
-    # Create cloudwatch alarms which tell us *when* to scale
-    print 'Setting up alarms...'
-    cloudwatch = boto.ec2.cloudwatch.connect_to_region(region_name=region)
-
-    alarm_dimensions = {"AutoScalingGroupName": autoscaling_group}
-    print 'ScaleUpAlarm'
-
-    # Create a new instance if the existing cluster
-    # averages more than 40% CPU
-    scale_up_alarm = MetricAlarm(
-        name='scale_up_on_cpu', 
-        namespace='AWS/EC2',
-        metric='CPUUtilization', 
-        statistic='Average',
-        comparison='>', 
-        threshold='40',
-        period='60', 
-        evaluation_periods=1,
-        alarm_actions=[scale_up_policy.policy_arn],
-        dimensions=alarm_dimensions)
-
-    cloudwatch.create_alarm(scale_up_alarm)
-
-    # Terminate an instance if the existing cluster
-    # averages less than 10% CPU
-    print 'ScaleDownAlarm'
-    scale_down_alarm = MetricAlarm(
+# Terminate an instance if the existing cluster
+# averages less than 10% CPU for two minutes
+scale_down_alarm = MetricAlarm(
         name='scale_down_on_cpu', 
         namespace='AWS/EC2',
         metric='CPUUtilization', 
@@ -153,71 +189,14 @@ def launchAutoScale():
         alarm_actions=[scale_down_policy.policy_arn],
         dimensions=alarm_dimensions)
 
-    cloudwatch.create_alarm(scale_down_alarm)
-    print 'Finished'
+cloudwatch.create_alarm(scale_down_alarm)
 
-def shutdown():
-
-    # shut down load balancing 
-    print 'Shutting down load balancing:'
-
-    lb_connection = boto.ec2.elb.connect_to_region(region)
-    try:
-        lb_list = lb_connection.get_all_load_balancers(
-                    load_balancer_names=[lb_name])
-        lb = lb_list[0]
-        lb.delete()
-    except Exception:
-        print 'Load balancer ' + lb_name + ' doesn\'t exist'
-
-    print 'Shutdown complete.'
-
-    # delete scaling policies
-    print 'Shutting down autoscaling:'
-    
-    as_connection = boto.ec2.autoscale.connect_to_region(region)
-
-    try:
-        policies = as_connection.get_all_policies(as_group=asg_name)
-        for p in policies:
-            print 'Deleting policy.'
-            p.delete
-    except Exception:
-        print 'AutoScalingGroup ' + asg_name + ' doesn\'t exist.'
-
-    # delete autoscaling group
-    
-    try:
-        asg = as_connection.get_all_groups(names=[asg_name])[0]
-        print 'Deleting AutoScalingGroup: ' + asg_name
-        asg.delete(force_delete=True)
-    except Exception:
-        print 'AutoScalingGroup ' + asg_name + ' doesn\'t exist.'
-
-    # delete launch configuration
-    try:
-        lc = as_connection.get_all_launch_configurations(names=[lc_name])[0]
-        print 'Deleting launch configuration: ' + lc_name
-        lc.delete()
-    except Exception:
-        print 'LaunchConfiguration ' + lc_name + ' doesn\'t exist.'
-
-    # delete cloudwatch alarms
-    try:
-        cloudwatch = boto.ec2.cloudwatch.connect_to_region(region_name=region)
-        cloudwatch.delete_alarms([alarm_up_name, alarm_down_name])
-        print 'Deleting CloudWatch alarms...'
-    except Exception:
-        print 'CloudWatchAlarms doesn\'t exist'
-
-    print 'Shutdown complete.'
+"""
+def stop_autoscaling():
+    ag.shutdown_instances()
+    ag.delete()
+"""
 
 
-if __name__ == "__main__":
-    if len(argv) == 1:
-                launchLoadBalancing()
-                launchAutoScale()   
-    elif len(argv) == 2 and argv[1] == '--shutdown':
-        shutdown()
-    else:
-        exit('usage: %s [--shutdown]' % argv[0])
+
+
