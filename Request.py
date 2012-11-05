@@ -14,12 +14,14 @@ class Request:
         root = None
         self.error = None
         
+        # Parse the string into an xml-tree
         try:
             root = ET.fromstring(reqString)
             self.id = root.tag
         except Exception:
             raise XMLError()
         
+        # Retrieve relevant information
         try:
             self.type = root.find('RequestType').text
             if self.type != 'ListCells':
@@ -27,9 +29,7 @@ class Request:
                 self.stopTime    = root.find('TimeStop').text
                 self.cellID      = root.find('CellID').text
         except Exception:
-            pass # Error is handled in process() instead, hoho..
-            #raise XMLError(self.id)
-    
+            pass # Error is handled in RequestHandler.process() instead, hoho..
 
     def process(self):
     
@@ -45,70 +45,29 @@ class Request:
             
             return xmlString
         
-        except StartTimeError:
-            return self.fakeStartTimeError()
-        except StopTimeError:
-            return self.fakeStopTimeError()
-        except CellIDError:
-            return self.fakeCellIDError()
-        except XMLError:
-            return self.fakeXMLError()
-        #except Exception as e:
-            # Return xml-error for any other error :)
-            # return str(e) #self.fakeXMLError()
-        #except:
-            # return 'RUH-ROH! Something went wrong, but who knows what!?'
-                
-    def fakeXMLError(self):
-        return """
-<""" + self.id + """>
-    <Error>
-        <XMLError>
-        <ErrorDescription>Error in XML syntax</ErrorDescription>
-        </XMLError>
-    </Error>
-</""" + self.id + ">"
-
-    def fakeStartTimeError(self):
-        return """
-<""" + self.id + """>
-    <Error>
-        <StartTimeError>
-            <ErrorData>""" + self.startTime + """</ErrorData>
-            <ErrorDescription>Out of range</ErrorDescription>
-        </StartTimeError>
-    </Error>
-</""" + self.id+  ">"
-
-    def fakeStopTimeError(self):
-        return """
-<""" + self.id + """>
-    <Error>
-        <StopTimeError>
-            <ErrorData>""" + self.stopTime + """</ErrorData>
-            <ErrorDescription>Out of range</ErrorDescription>
-        </StopTimeError>
-    </Error>
-</""" + self.id + ">"
-
-    def fakeCellIDError(self):
-        return """
-<""" + self.id + """>
-    <Error>
-        <CellIDError>
-            <ErrorData>""" + self.cellID + """</ErrorData>
-                <ErrorDescription>No such cell</ErrorDescription>
-        </CellIDError>
-    </Error>
-</""" + self.id + ">"
-
-
-    def listCellsReply(self):
-        
-        cells = sql.Packet.listAllCells() # all cells as set
+		except RequestError as e:
+			return e.asXML(self.id)
+				
+	
+	def listCellsReply(self):
+		"""
+			Lists all cells in the database in XML format
+			
+			<RequestType>ListCells</RequestType>
+			<Cell>
+				<CellID>CellID</CellID>
+				(neighbors)
+			</Cell>
+			...
+		"""
+			
+        # Retrieve all cells from the database as set
+        cells = sql.Packet.listAllCells()
+        # Convert to list and sort the elements
         cellList = list(cells)
         cellList.sort()
         
+        # Generate xml with list of cells
         root = ET.Element(self.id)
         eType = ET.SubElement(root, 'RequestType')
         eType.text = self.type
@@ -124,7 +83,28 @@ class Request:
 
 
     def cellStatSpeedReply(self):
-        
+		"""
+		Calculates car speeds in a cell and outputs an XML string on the format:
+			
+		<RequestType>CellStatSpeed</RequestType>
+		<Cell>
+			<CellID>CellID</CellID>
+			<TimeStart>StartTime</TimeStart>
+			<TimeStop>StopTime</TimeStop>
+			<DirectionCellIDA>
+				<CarTypeA>
+					<MinSpeed>3</Minspeed>
+					<MaxSpeed>5</MaxSpeed>
+					<AverageSpeed>4</AverageSpeed>
+				</CarTypeA>
+				<CarTypeB>
+				...
+			</DirectionCellIDA>
+			<DirectionCellIDB>
+				...
+			</DirectionCellIDB>
+		</Cell>
+		"""
         root = ET.Element(self.id)
         
         eType = ET.SubElement(root, 'RequestType')
@@ -142,9 +122,14 @@ class Request:
         dirMap = { 0:'A', 1:'B' }
 
         for dirKey in dirMap:
-            eDir = ET.SubElement(eCell, 'DirectionCellID' + dirMap[dirKey])
+			
+            # One list per side of the road is generated
+			eDir = ET.SubElement(eCell, 'DirectionCellID' + dirMap[dirKey])
+			
             for carKey in range(1, NUM_CAR_TYPES + 1):
                 relevantPackets = []
+				
+				# Sort packets by car type
                 for p in packets:
                     if int(p.getCarType()) == carKey and int(p.road_side) == dirKey:
                         relevantPackets.append(p)
@@ -156,6 +141,8 @@ class Request:
                 
                 speeds = None
                     
+				# Write packets to file, as required by process64
+				# At least two packets are needed to calculate speeds
                 if (len(relevantPackets) > 1):
                     path, filelist = sql.Packet.writeFiles(relevantPackets)
                     speeds = rawdata.getAvgSpeed(path, filelist)
@@ -165,6 +152,7 @@ class Request:
                     eMin.text = str(min)
                     eMax.text = str(max)
                     eAvg.text = str(avg)
+				# If no speeds could be calculated, set all to 0
                 else:
                     eMin.text = '0'
                     eMax.text = '0'
@@ -172,82 +160,30 @@ class Request:
         
         return ET.tostring(root)
 
-#    return """
-#    <RequestType>CellStatSpeed</RequestType>
-#    <Cell>
-#        <CellID>""" + req.cellID + """</CellID>
-#        <TimeStart>""" + req.startTime + """</TimeStart>
-#        <TimeStop>""" + req.stopTime + """</TimeStop>
-#        <DirectionCellIDA>
-#            <CarTypeA>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeA>
-#            <CarTypeB>
-#                <MinSpeed>0</Minspeed>
-#                <MaxSpeed>6</MaxSpeed>
-#                <AverageSpeed>1</AverageSpeed>
-#            </CarTypeB>
-#            <CarTypeC>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeC>
-#            <CarTypeD>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeD>
-#            <CarTypeE>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeE>
-#            <CarTypeF>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeF>
-#        </DirectionCellIDA>
-#        <DirectionCellIDB>
-#            <CarTypeA>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeA>
-#            <CarTypeB>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeB>
-#            <CarTypeC>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeC>
-#            <CarTypeD>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeD>
-#            <CarTypeE>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeE>
-#            <CarTypeF>
-#                <MinSpeed>3</Minspeed>
-#                <MaxSpeed>5</MaxSpeed>
-#                <AverageSpeed>4</AverageSpeed>
-#            </CarTypeF>
-#        </DirectionCellIDB>
-#    </Cell>
-#"""
-
 
     def cellStatNetReply(self):
-        
+        """
+			Calculates cell statistics and outputs an XML string on the format:
+			
+			<RequestType>CellStatNet</RequestType>
+			<Cell>
+				<CellID>CellID</CellID>
+				<TimeStart>StartTime</TimeStart>
+				<TimeStop>StopTime</TimeStop>
+				<FirstCar>
+					<CarType>C</CarType>
+					<TimeStamp>201210051406</TimeStamp>
+				</FirstCar>
+				<LastCar>
+					<CarType>A</CarType>
+					<TimeStamp>201210051409</TimeStamp>
+				</LastCar>
+				<TotalCar>180000</TotalCar>
+				<TotalAmountOfData>14560<TotalAmountOfData>
+			</Cell>
+		"""
+		
+        # Create xml-tree
         root = ET.Element(self.id)
         
         eType = ET.SubElement(root, 'RequestType')
@@ -260,6 +196,7 @@ class Request:
         eStop = ET.SubElement(eCell, 'TimeStop')
         eStop.text = self.stopTime
         
+        # Fetch all packets in the specified cell and time interval
         packets = sql.Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
         
         eFirst = ET.SubElement(eCell, 'FirstCar')
@@ -269,9 +206,8 @@ class Request:
             # Leave the fields empty if there are no cars in the db
             pass
         elif len(packets) == 1:
-            # Only compute car type once if firstCar == lastCar,
+            # Only compute car type for one of the packets if firstCar == lastCar,
             # (this saves time if the car type is not already computed)
-            
             carTypeInt = int(packets[0].getCarType())
             carType = chr(65 + carTypeInt)
             timeStamp = str(packets[0].getTimestamp())
@@ -288,7 +224,7 @@ class Request:
             
         else:
             firstCarPacket = packets[0]
-            lastCarPacket = packets[len(packets) - 1]
+            lastCarPacket = packets[-1]
             
             eCar = ET.SubElement(eFirst, 'CarType')
             eCar.text = chr(65 + int(firstCarPacket.getCarType()))
@@ -303,6 +239,7 @@ class Request:
         eTotalCar = ET.SubElement(eCell, 'TotalCar')
         eTotalCar.text = str(len(packets))
         
+		# Calculate total amount of raw data in the packets
         eTotalData = ET.SubElement(eCell, 'TotalAmountOfData')
         totData = 0
         for p in packets:
@@ -310,25 +247,6 @@ class Request:
         eTotalData.text = str(totData / (1024 * 1024)) # size in MiB
         
         return ET.tostring(root)
-
-#    return """
-#    <RequestType>CellStatNet</RequestType>
-#    <Cell>
-#        <CellID>""" + req.cellID + """</CellID>
-#        <TimeStart>""" + req.startTime + """</TimeStart>
-#        <TimeStop>""" + req.stopTime + """</TimeStop>
-#        <FirstCar>
-#            <CarType>C</CarType>
-#            <TimeStamp>201210051406</TimeStamp>
-#        </FirstCar>
-#        <LastCar>
-#            <CarType>A</CarType>
-#            <TimeStamp>201210051409</TimeStamp>
-#        </LastCar>
-#        <TotalCar>180000</TotalCar>
-#        <TotalAmountOfData>14560<TotalAmountOfData>
-#    </Cell>
-#"""
 
 
 
