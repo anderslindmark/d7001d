@@ -51,14 +51,14 @@ class Request:
 	
 	def listCellsReply(self):
 		"""
-			Lists all cells in the database in XML format
+		Lists all cells in the database in XML format
 			
-			<RequestType>ListCells</RequestType>
-			<Cell>
-				<CellID>CellID</CellID>
-				(neighbors)
-			</Cell>
-			...
+		<RequestType>ListCells</RequestType>
+		<Cell>
+			<CellID>CellID</CellID>
+			(neighbors)
+		</Cell>
+		...
 		"""
 			
         # Retrieve all cells from the database as set
@@ -105,6 +105,8 @@ class Request:
 			</DirectionCellIDB>
 		</Cell>
 		"""
+		
+		# Create XML tree
         root = ET.Element(self.id)
         
         eType = ET.SubElement(root, 'RequestType')
@@ -117,8 +119,10 @@ class Request:
         eStop = ET.SubElement(eCell, 'TimeStop')
         eStop.text = self.stopTime
         
+		# Fetch packets from the database
         packets = sql.Packet.fetchInterval(self.cellID, self.startTime, self.stopTime)
         
+		# Side of the road input-output mapping
         dirMap = { 0:'A', 1:'B' }
 
         for dirKey in dirMap:
@@ -133,6 +137,7 @@ class Request:
                 for p in packets:
                     if int(p.getCarType()) == carKey and int(p.road_side) == dirKey:
                         relevantPackets.append(p)
+						packets.remove(p)
                 
                 eCar = ET.SubElement(eDir, 'CarType' + chr(65 + carKey))
                 eMin = ET.SubElement(eCar, 'MinSpeed')
@@ -152,8 +157,8 @@ class Request:
                     eMin.text = str(min)
                     eMax.text = str(max)
                     eAvg.text = str(avg)
-				# If no speeds could be calculated, set all to 0
                 else:
+					# If no speeds could be calculated, set all to 0
                     eMin.text = '0'
                     eMax.text = '0'
                     eAvg.text = '0'
@@ -162,25 +167,25 @@ class Request:
 
 
     def cellStatNetReply(self):
-        """
-			Calculates cell statistics and outputs an XML string on the format:
-			
-			<RequestType>CellStatNet</RequestType>
-			<Cell>
-				<CellID>CellID</CellID>
-				<TimeStart>StartTime</TimeStart>
-				<TimeStop>StopTime</TimeStop>
-				<FirstCar>
-					<CarType>C</CarType>
-					<TimeStamp>201210051406</TimeStamp>
-				</FirstCar>
-				<LastCar>
-					<CarType>A</CarType>
-					<TimeStamp>201210051409</TimeStamp>
-				</LastCar>
-				<TotalCar>180000</TotalCar>
-				<TotalAmountOfData>14560<TotalAmountOfData>
-			</Cell>
+		"""
+		Calculates cell statistics and outputs an XML string on the format:
+		
+		<RequestType>CellStatNet</RequestType>
+		<Cell>
+			<CellID>CellID</CellID>
+			<TimeStart>StartTime</TimeStart>
+			<TimeStop>StopTime</TimeStop>
+			<FirstCar>
+				<CarType>C</CarType>
+				<TimeStamp>201210051406</TimeStamp>
+			</FirstCar>
+			<LastCar>
+				<CarType>A</CarType>
+				<TimeStamp>201210051409</TimeStamp>
+			</LastCar>
+			<TotalCar>180000</TotalCar>
+			<TotalAmountOfData>14560<TotalAmountOfData>
+		</Cell>
 		"""
 		
         # Create xml-tree

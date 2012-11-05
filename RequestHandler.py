@@ -1,7 +1,7 @@
 import time
 import threading
 import S3
-import Request
+from Request import Request
 from boto.sqs.message import Message
 from boto.sqs.connection import SQSConnection
 import aws_common
@@ -21,7 +21,7 @@ class RequestHandler(threading.Thread):
         
         try:
             # Parse the request
-            request = Request.Request(body)
+            request = Request(body)
         except XMLError:
             # Just return if the request can't be parsed
             # This throws away the request
@@ -53,14 +53,15 @@ class RequestHandler(threading.Thread):
                     self.handleMessage(message)
                     inQueue.delete_message(message)
                 except:
+					# Do nothing here, just try another message from the queue
                     pass
-                    # Do nothing here, just try another message from the queue
 			# Sleep a short while between reads 
             time.sleep(2)
 
 
 if __name__ == "__main__":
 
+	# Find region
     eu_region = None
     for region in regions():
         if region.name == 'eu-west-1':
