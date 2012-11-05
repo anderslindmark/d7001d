@@ -11,7 +11,7 @@ import aws_common
 from cartype_sqs import enQueue
 from error import StartTimeError, StopTimeError, CellIDError
 
-DB_DEBUG = True
+DB_DEBUG = False
 
 Base = declarative_base()
 class Packet(Base):
@@ -19,8 +19,9 @@ class Packet(Base):
 	This class contains the database mapping for a 'packet' from the sensor data group 
 	and helper methods for dealing with that data.
 	"""
-	__tablename__ = "packets"
 
+	# Defines the database-table, which fields are what type etc
+	__tablename__ = "packets"
 	id = Column(Integer, primary_key=True)
 	cell_id = Column(SmallInteger)
 	node_id = Column(SmallInteger)
@@ -61,14 +62,17 @@ class Packet(Base):
 		Returns the cartype. If cartype has not yet been calculated it will be done, which can take a while.
 		"""
 		global session
+		# If cartype is None it needs to be calculated.
 		if self.cartype is None:
 			cartype = rawdata.getCarType(self.raw_data)
 			if cartype is None:
+				# Cartype could not be calculated (because of corrupt data)
 				# Delete packet from db
 				print "Corrupt packet, deleting from DB"
 				session.delete(self)
 				return None
 			else:
+				# Cartype has now been calculated, save information to database
 				self.cartype = cartype
 				session.add(self)
 				session.commit()
@@ -110,26 +114,28 @@ class Packet(Base):
 		"""
 		global session
 
+		# Convert times to good format
 		try:
-			startTime = Packet._fixTimes(startTime)
+			startTime = Packet._fixTimes(startTime, 'Bad startTime format')
 		except:
-			raise StartTimeError()
+			raise StartTimeError(startTime)
 		try:
-			stopTime = Packet._fixTimes(stopTime)
+			stopTime = Packet._fixTimes(stopTime, 'Bad stopTime format')
 		except:
-			raise StopTimeError()
+			raise StopTimeError(stopTime)
 
 		# Check start and stop times
 		t_start = dateutil.parser.parse(startTime)
 		t_stop = dateutil.parser.parse(stopTime)
 		if t_start > t_stop:
-			raise StartTimeError()
+			raise StartTimeError(startTime, 'Start time after stop time')
 
 		# Check if cell_id exists
 		cell_count = session.query(Packet.cell_id).filter(Packet.cell_id == cell_id).count()
 		if cell_count == 0:
-			raise CellIDError()
+			raise CellIDError(0, 'No matching cell found')
 
+		# Retrieve all packets in the specified interval
 		l = []
 		for packet in session.query(Packet).filter(and_(Packet.cell_id == cell_id, Packet.timestamp.between(startTime, stopTime))).order_by(Packet.timestamp):
 			l.append(packet)
@@ -141,6 +147,7 @@ class Packet(Base):
 		Takes a list of packets and writes the data from each packet to a file.
 		Returns a tuple consisting of the directory containing the files and a list of filenames.
 		"""
+		# Write the raw data from each packet to a temporary file
 		tempdir = mkdtemp()
 		i = 0
 		files = []
@@ -191,7 +198,6 @@ session = Session()
 
 if __name__ == "__main__":
 	pass
-	#p = Packet(99, 99, 0, 1350555611626, 8, "rawdata2")
 	
 	# Incoming packets from the Sensor Network
 	#  import sql
